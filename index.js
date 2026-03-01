@@ -212,6 +212,12 @@ bot.onText(/^\/(info|informazioni)$/i, async (msg) => {
 
   // in gruppo rispondo in privato (serve che l’utente abbia avviato il bot almeno una volta)
   const targetChat = (msg.chat.type === "private") ? msg.chat.id : userId;
+  if (msg.chat.type !== "private") {
+    await bot.sendMessage(
+      msg.chat.id,
+      "📩 Se sei già registrato ti ho scritto in privato le informazioni, altrimenti registrati con /start TuoNick"
+  );
+  }
 
   const nick = await getRegisteredNick(userId);
   if (!nick) {
