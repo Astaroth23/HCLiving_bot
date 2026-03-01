@@ -69,33 +69,52 @@ function bonusCompagni(n) {
 function fmtDate(d) {
   if (!d) return "—";
 
-  // Se è già una Date valida
+  // 1) Se è già una Date
   if (d instanceof Date && !Number.isNaN(d.getTime())) {
-    return d.toLocaleDateString("it-IT");
+    return formatDDMMYYYY_(d);
   }
 
   const s = String(d).trim();
 
-  // Caso ISO (2026-03-01 o 2026-03-01T...)
+  // 2) ISO (2026-03-01 o 2026-03-01T...)
+  // NB: questo è sempre interpretabile bene
   const iso = new Date(s);
-  if (!Number.isNaN(iso.getTime())) {
-    return iso.toLocaleDateString("it-IT");
+  if (!Number.isNaN(iso.getTime()) && /^\d{4}-\d{2}-\d{2}/.test(s)) {
+    return formatDDMMYYYY_(iso);
   }
 
-  // Caso IT: DD/MM/YYYY o DD/MM/YYYY HH:MM
-  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  // 3) Se arriva già DD/MM/YYYY (o DD/MM/YYYY HH:MM)
+  let m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
   if (m) {
-    const dd = Number(m[1]);
-    const mm = Number(m[2]) - 1;
+    const a = Number(m[1]);
+    const b = Number(m[2]);
     const yyyy = Number(m[3]);
+
+    // Heuristica:
+    // - se il primo numero > 12 -> è DD/MM sicuro
+    // - se il secondo numero > 12 -> è MM/DD sicuro
+    // - se entrambi <= 12, assumiamo DD/MM (italiano)
+    let dd, mm;
+    if (a > 12) { dd = a; mm = b; }
+    else if (b > 12) { dd = b; mm = a; }
+    else { dd = a; mm = b; }
+
     const hh = m[4] ? Number(m[4]) : 0;
     const min = m[5] ? Number(m[5]) : 0;
 
-    const dt = new Date(yyyy, mm, dd, hh, min, 0);
-    if (!Number.isNaN(dt.getTime())) return dt.toLocaleDateString("it-IT");
+    const dt = new Date(yyyy, mm - 1, dd, hh, min, 0);
+    if (!Number.isNaN(dt.getTime())) return formatDDMMYYYY_(dt);
   }
 
+  // 4) Se arriva tipo "3/1/2026" senza zeri, stesso parsing sopra lo copre.
   return "—";
+}
+
+function formatDDMMYYYY_(dt) {
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
 }
 
 // ===== Google Sheets helpers =====
@@ -143,7 +162,16 @@ async function getRegisteredNick(userId) {
 
 async function upsertRegistration(userId, tuoNick) {
   const rows = await valuesGet("Registrazioni!A:C");
-  const now = new Date().toLocaleString("it-IT");
+  const now = new Date()
+  .toLocaleString("it-IT", {
+    timeZone: "Europe/Rome",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  })
+  .replace(",", "");
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
