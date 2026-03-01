@@ -1,6 +1,7 @@
 import TelegramBot from "node-telegram-bot-api";
 import { google } from "googleapis";
 import http from "http";
+import fs from "fs";
 
 /**
  * ENV richieste:
@@ -408,3 +409,12 @@ http.createServer((req, res) => {
   console.log("Health server listening on", PORT);
 });
 
+const LOCK_FILE = "/tmp/bot.lock";
+
+try {
+  fs.writeFileSync(LOCK_FILE, String(Date.now()), { flag: "wx" });
+  console.log("Lock acquired:", LOCK_FILE);
+} catch (e) {
+  console.log("Another instance detected, exiting.");
+  process.exit(0);
+}
