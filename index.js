@@ -1,5 +1,6 @@
 import TelegramBot from "node-telegram-bot-api";
 import { google } from "googleapis";
+import http from "http";
 
 /**
  * ENV richieste:
@@ -324,7 +325,7 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
 
   const isGroup = msg.chat.type !== "private";
 
-  // 1) Messaggio nel gruppo (sempre)
+  // Messaggio nel gruppo (sempre)
   if (isGroup) {
     await bot.sendMessage(
       msg.chat.id,
@@ -332,7 +333,7 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
     );
   }
 
-  // 2) Risposta in privato
+  // Risposta privata
   const targetChat = isGroup ? userId : msg.chat.id;
 
   const nick = await getRegisteredNick(userId);
@@ -346,6 +347,10 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
     await bot.sendMessage(targetChat, "Sei registrato, ma ora non risulti occupante di una camera.");
     return;
   }
+
+  const ruoloTxt = res.ruolo === "compagno"
+    ? "👥 Sei registrato come compagno\n"
+    : "";
 
   const b = bonusCompagni(res.compagni);
   const sett = res.prezzoBase + b;
@@ -369,15 +374,12 @@ bot.on("message", async (msg) => {
   if (t.startsWith("/")) return; // comandi già gestiti sopra
 });
 
-import http from "http";
-
 const PORT = process.env.PORT || 10000;
 
 http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain" });
   res.end("Bot online");
 }).listen(PORT, "0.0.0.0", () => {
-  console.log("Health check server running on port", PORT);
+  console.log("Health server listening on", PORT);
 });
-
 
