@@ -206,18 +206,22 @@ bot.onText(/^\/start(?:\s+(.+))?$/i, async (msg, match) => {
   await bot.sendMessage(msg.chat.id, "✅ Registrazione completata! Ora usa /info.");
 });
 
-bot.onText(/^\/(info|informazioni)$/i, async (msg) => {
+bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
   const userId = msg.from?.id;
   if (!userId) return;
 
-  // in gruppo rispondo in privato (serve che l’utente abbia avviato il bot almeno una volta)
-  const targetChat = (msg.chat.type === "private") ? msg.chat.id : userId;
-  if (msg.chat.type !== "private") {
+  const isGroup = msg.chat.type !== "private";
+
+  // 1) Messaggio nel gruppo (sempre)
+  if (isGroup) {
     await bot.sendMessage(
       msg.chat.id,
       "📩 Se sei già registrato ti ho scritto in privato le informazioni, altrimenti registrati con /start TuoNick"
-  );
+    );
   }
+
+  // 2) Risposta in privato
+  const targetChat = isGroup ? userId : msg.chat.id;
 
   const nick = await getRegisteredNick(userId);
   if (!nick) {
