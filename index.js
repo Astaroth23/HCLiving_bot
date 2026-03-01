@@ -110,7 +110,7 @@ async function getRegisteredNick(userId) {
 
 async function upsertRegistration(userId, tuoNick) {
   const rows = await valuesGet("Registrazioni!A:C");
-  const now = new Date().toISOString();
+  const now = new Date().toLocaleString("it-IT");
 
   for (let i = 1; i < rows.length; i++) {
     const r = rows[i];
