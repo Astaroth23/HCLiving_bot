@@ -67,9 +67,34 @@ function bonusCompagni(n) {
 
 function fmtDate(d) {
   if (!d) return "—";
-  const dt = new Date(d);
-  if (Number.isNaN(dt.getTime())) return "—";
-  return dt.toLocaleDateString("it-IT");
+
+  // Se è già una Date valida
+  if (d instanceof Date && !Number.isNaN(d.getTime())) {
+    return d.toLocaleDateString("it-IT");
+  }
+
+  const s = String(d).trim();
+
+  // Caso ISO (2026-03-01 o 2026-03-01T...)
+  const iso = new Date(s);
+  if (!Number.isNaN(iso.getTime())) {
+    return iso.toLocaleDateString("it-IT");
+  }
+
+  // Caso IT: DD/MM/YYYY o DD/MM/YYYY HH:MM
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+  if (m) {
+    const dd = Number(m[1]);
+    const mm = Number(m[2]) - 1;
+    const yyyy = Number(m[3]);
+    const hh = m[4] ? Number(m[4]) : 0;
+    const min = m[5] ? Number(m[5]) : 0;
+
+    const dt = new Date(yyyy, mm, dd, hh, min, 0);
+    if (!Number.isNaN(dt.getTime())) return dt.toLocaleDateString("it-IT");
+  }
+
+  return "—";
 }
 
 // ===== Google Sheets helpers =====
