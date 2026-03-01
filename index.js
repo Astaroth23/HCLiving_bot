@@ -49,6 +49,12 @@ const CAMERA_RANGES = [
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
 ];
 
+const COMP_RANGES = [
+  { app: "app5p12", range: "tab_compagni_app5p12" },
+  { app: "app7p1",  range: "tab_compagni_app7p1" },
+  { app: "app10p1", range: "tab_compagni_app10p1" },
+];
+
 function bonusCompagni(n) {
   const x = Number(n) || 0;
   if (x === 1) return 100;
@@ -145,6 +151,28 @@ function isOccupata(stato) {
 
 async function findOccupanteByNick(tuoNickRaw) {
   const target = String(tuoNickRaw || "").trim().toUpperCase();
+
+  // 1) Prima: cerca intestatario nelle camere
+  const owner = await findOwnerInCamere_(target);
+  if (owner.found) return { ...owner, ruolo: "intestatario" };
+
+  // 2) Se non trovato: cerca come compagno
+  const comp = await findCompagnoInCompagni_(target);
+  if (!comp.found) return { found: false };
+
+  // 3) Risali alla camera nell'app corrispondente e prendi info dalla tab camere
+  const ownerFromCamera = await findOwnerByAppCamera_(comp.appartamento, comp.camera);
+  if (!ownerFromCamera.found) {
+    // compagno esiste ma la camera non risulta occupata / mismatch
+    return { found: false };
+  }
+
+  return { ...ownerFromCamera, ruolo: "compagno" };
+}
+
+// ===== Helpers =====
+
+async function findOwnerInCamere_(targetNickUpper) {
   for (const c of CAMERA_RANGES) {
     const rows = await valuesGet(c.range);
     if (rows.length < 2) continue;
@@ -155,11 +183,10 @@ async function findOccupanteByNick(tuoNickRaw) {
     for (let i = 1; i < rows.length; i++) {
       const r = rows[i];
       if (!r || r.length === 0) continue;
-
       if (!isOccupata(r[idxs.stato])) continue;
 
       const nick = String(r[idxs.cf] ?? "").trim().toUpperCase();
-      if (nick !== target) continue;
+      if (nick !== targetNickUpper) continue;
 
       const camera = String(r[idxs.camera] ?? "").trim();
       const comp = idxs.comp >= 0 ? Number(r[idxs.comp]) || 0 : 0;
@@ -175,6 +202,89 @@ async function findOccupanteByNick(tuoNickRaw) {
       };
     }
   }
+  return { found: false };
+}
+
+function compHeaderIndexMap_(headerRow) {
+  const h = headerRow.map(x => String(x ?? "").trim().toLowerCase());
+
+  // ci basta Camera e Cod.Fiscale (o CF)
+  const idx = (names) => {
+    for (const n of names) {
+      const k = h.indexOf(n);
+      if (k >= 0) return k;
+    }
+    // fallback "includes"
+    for (let i = 0; i < h.length; i++) {
+      for (const n of names) {
+        if (h[i].includes(n)) return i;
+      }
+    }
+    return -1;
+  };
+
+  return {
+    camera: idx(["camera"]),
+    cf: idx(["cod.fiscale", "codice fiscale", "cf", "tuonick"]),
+  };
+}
+
+async function findCompagnoInCompagni_(targetNickUpper) {
+  for (const c of COMP_RANGES) {
+    const rows = await valuesGet(c.range);
+    if (rows.length < 2) continue;
+
+    const idxs = compHeaderIndexMap_(rows[0]);
+    if (idxs.camera < 0 || idxs.cf < 0) continue;
+
+    for (let i = 1; i < rows.length; i++) {
+      const r = rows[i];
+      if (!r || r.length === 0) continue;
+
+      const nick = String(r[idxs.cf] ?? "").trim().toUpperCase();
+      if (nick !== targetNickUpper) continue;
+
+      const camera = String(r[idxs.camera] ?? "").trim();
+      return { found: true, appartamento: c.app, camera };
+    }
+  }
+  return { found: false };
+}
+
+async function findOwnerByAppCamera_(app, camera) {
+  const conf = CAMERA_RANGES.find(x => x.app === app);
+  if (!conf) return { found: false };
+
+  const rows = await valuesGet(conf.range);
+  if (rows.length < 2) return { found: false };
+
+  const idxs = headerIndexMap(rows[0]);
+  if (idxs.camera < 0 || idxs.stato < 0) return { found: false };
+
+  const camTarget = String(camera || "").trim();
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.length === 0) continue;
+
+    const cam = String(r[idxs.camera] ?? "").trim();
+    if (cam !== camTarget) continue;
+
+    if (!isOccupata(r[idxs.stato])) return { found: false };
+
+    const comp = idxs.comp >= 0 ? Number(r[idxs.comp]) || 0 : 0;
+    const scad = idxs.scad >= 0 ? String(r[idxs.scad] ?? "").trim() : "";
+
+    return {
+      found: true,
+      appartamento: conf.app,
+      camera: cam,
+      compagni: comp,
+      scadenza: scad,
+      prezzoBase: conf.base,
+    };
+  }
+
   return { found: false };
 }
 
@@ -197,6 +307,8 @@ bot.onText(/^\/start(?:\s+(.+))?$/i, async (msg, match) => {
   }
 
   const res = await findOccupanteByNick(arg);
+  const ruoloTxt = res.ruolo === "compagno" ? "👥 Sei registrato come compagno\n" : "";
+  
   if (!res.found) {
     await bot.sendMessage(msg.chat.id, `TuoNick non trovato oppure non risulti occupante.\nHai scritto: ${arg}`);
     return;
@@ -240,6 +352,7 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
 
   const reply =
     "📌 Le tue info affitto\n" +
+    ruoloTxt +
     `🪪 TuoNick: ${nick}\n` +
     `🏠 Appartamento: ${res.appartamento.toUpperCase()}\n` +
     `🚪 Camera: ${res.camera}\n` +
@@ -255,3 +368,16 @@ bot.on("message", async (msg) => {
   const t = String(msg.text || "");
   if (t.startsWith("/")) return; // comandi già gestiti sopra
 });
+
+import http from "http";
+
+const PORT = process.env.PORT || 10000;
+
+http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain" });
+  res.end("Bot online");
+}).listen(PORT, "0.0.0.0", () => {
+  console.log("Health check server running on port", PORT);
+});
+
+
