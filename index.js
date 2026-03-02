@@ -360,17 +360,22 @@ async function findOwnerByAppCamera_(app, camera) {
 
 // ===== Messaggi =====
 function startPrivatoText(usernameOrAt) {
-  // usernameOrAt tipo "@Nick" o "" se non c'è username telegram
   return (
-    `⚜️ | Benvenuto nel bot di HcLiving ${usernameOrAt}, in questo bot potrai controllare i tuoi pagamenti, le tue scadenze e le tue camere.\n\n` +
-    `Per iniziare utilizza /registra ed inserisci le informazioni richieste.\n\n` +
-    `Successivamente, se sei già registrato, utilizza /info per vedere la tua situazione.\n\n` +
-    `Bot sviluppato da Astaroth19`
+    `⚜️ <b>Benvenuto nel bot di HcLiving</b> ${usernameOrAt}\n\n` +
+    `In questo bot potrai controllare:\n` +
+    `• I tuoi <b>pagamenti</b>\n` +
+    `• Le tue <b>scadenze</b>\n` +
+    `• Le tue <b>camere</b>\n\n` +
+    `Per iniziare utilizza <code>/registra nickname</code>\n\n` +
+    `Se sei già registrato utilizza <code>/info</code>\n\n` +
+    `<i>Bot sviluppato da Astaroth19</i>`
   );
 }
 
 const startGruppoText =
-  `⚜️ | Benvenuto nel bot di HcLiving @, il bot NON può essere utilizzato nei gruppi, di conseguenza avviami in privato!`;
+`⚜️ <b>Bot HcLiving</b>\n\n` +
+`❌ Il bot <b>non può essere utilizzato nei gruppi</b>.\n` +
+`➡️ Avviami in <b>privato</b> per registrarti.`;
 
 const registraErroreText =
   `Utilizza correttamente il comando "/registra nickname"`;
@@ -385,11 +390,15 @@ const infoNonRegistratoText =
 bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
-    await bot.sendMessage(msg.chat.id, startGruppoText);
+    await bot.sendMessage(msg.chat.id, startGruppoText, {
+    parse_mode: "HTML"
+    });
     return;
   }
   const at = msg.from?.username ? `@${msg.from.username}` : "@";
-  await bot.sendMessage(msg.chat.id, startPrivatoText(at));
+  await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
+  parse_mode: "HTML"
+});
 });
 
 // ===== /registra nickname =====
@@ -405,12 +414,6 @@ bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
     return;
   }
 
-  // Verifica che esista come intestatario O compagno (la tua funzione findOccupanteByNick già gestisce entrambi se hai implementato A)
-  const res = await findOccupanteByNick(arg);
-  if (!res.found) {
-    await bot.sendMessage(msg.chat.id, `TuoNick non trovato oppure non risulti occupante.\nHai scritto: ${arg}`);
-    return;
-  }
 
   await upsertRegistration(msg.from.id, arg);
   await bot.sendMessage(msg.chat.id, registraOkText);
@@ -442,21 +445,34 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
   const sett = res.prezzoBase + b;
 
   const days = giorniDaOggi_(res.scadenza);
-  const daysTxt = days >= 0 ? `(-${days} giorni)` : `(+${Math.abs(days)} giorni)`;
 
-  const ruoloTxt = res.ruolo === "compagno" ? "👥 (Compagno)\n\n" : "\n";
+  let daysTxt;
+  if (days > 0) {
+    daysTxt = `(-${days} giorni)`;
+  } else if (days === 0) {
+    daysTxt = `⚠️ <b>Scade oggi</b>`;
+  } else {
+    daysTxt = `❗ <b>Scaduto da ${Math.abs(days)} giorni</b>`;
+  }
 
-  const reply =
-    `⚜️ | Area Personale di "${nick}"\n` +
-    ruoloTxt +
-    `Appartamento: ${res.appartamento.toUpperCase()}\n` +
-    `Camera: ${res.camera}\n` +
-    `Compagni: ${res.compagni} (bonus +${b})\n\n` +
-    `Prezzo settimanale: ${sett}€\n` +
-    `Scadenza: ${fmtDate(res.scadenza)}\n` +
-    `Giorni mancanti: ${daysTxt}`;
+  const ruoloTxt = res.ruolo === "compagno"
+  ? "👥 <i>Sei registrato come compagno</i>\n\n"
+  : "";
 
-  await bot.sendMessage(msg.chat.id, reply);
+const reply =
+  `⚜️ <b>Area Personale</b>\n` +
+  `👤 <b>${nick}</b>\n\n` +
+  ruoloTxt +
+  `🏠 <b>Appartamento:</b> ${res.appartamento.toUpperCase()}\n` +
+  `🛏 <b>Camera:</b> ${res.camera}\n` +
+  `👥 <b>Compagni:</b> ${res.compagni} (bonus +${b}€)\n\n` +
+  `💰 <b>Prezzo settimanale:</b> ${sett}€\n` +
+  `📅 <b>Scadenza:</b> ${fmtDate(res.scadenza)}\n` +
+  `⏳ <b>Giorni mancanti:</b> ${daysTxt}`;
+
+  await bot.sendMessage(msg.chat.id, reply, {
+    parse_mode: "HTML"
+  });
 });
 
 // ===== helpers giorni =====
