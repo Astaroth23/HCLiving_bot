@@ -446,3 +446,9 @@ try {
   console.log("Another instance detected, exiting.");
   process.exit(0);
 }
+
+bot.on("message", (msg) => {
+  if (msg.text === "/ping") {
+    console.log("CHAT ID:", msg.chat.id);
+}
+});
