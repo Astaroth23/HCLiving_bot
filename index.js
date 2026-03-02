@@ -54,6 +54,11 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
+bot.onText(/^\/ping$/, async (msg) => {
+  console.log("CHAT ID:", msg.chat.id);
+  await bot.sendMessage(msg.chat.id, "pong ✅ (polling ok)");
+});
+
 // ==== Config ====
 const CAMERA_RANGES = [
   { app: "app5p12", range: "tab_camere_app5p12", base: 800 },
@@ -414,16 +419,10 @@ bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
 // ===== /info =====
 bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
   if (msg.chat.type !== "private") {
-    // Non usabile nei gruppi
     await bot.sendMessage(msg.chat.id, startGruppoText);
     return;
   }
-});
 
-bot.onText(/^\/ping$/, async (msg) => {
-  console.log("CHAT ID:", msg.chat.id);
-  await bot.sendMessage(msg.chat.id, "pong ✅ (polling ok)");
-});
   const userId = msg.from?.id;
   if (!userId) return;
 
@@ -442,7 +441,6 @@ bot.onText(/^\/ping$/, async (msg) => {
   const b = bonusCompagni(res.compagni);
   const sett = res.prezzoBase + b;
 
-  // giorni mancanti (stile: scadenza futura = -X, scaduta = +X)
   const days = giorniDaOggi_(res.scadenza);
   const daysTxt = days >= 0 ? `(-${days} giorni)` : `(+${Math.abs(days)} giorni)`;
 
