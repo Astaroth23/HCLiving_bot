@@ -54,9 +54,35 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
+await bot.getMe().then(me => {
+  bot.botInfo = me;
+});
+
 bot.onText(/^\/ping$/, async (msg) => {
   console.log("CHAT ID:", msg.chat.id);
   await bot.sendMessage(msg.chat.id, "pong ✅ (polling ok)");
+});
+
+bot.on("new_chat_members", async (msg) => {
+  if (!msg.new_chat_members) return;
+
+  for (const member of msg.new_chat_members) {
+    // Ignora se è il bot stesso
+    if (member.id === bot.botInfo?.id) continue;
+
+    const username = member.username
+      ? `@${member.username}`
+      : member.first_name;
+
+    const text =
+      `⚜️ <b>Benvenuto ${username}!</b>\n\n` +
+      `Per controllare pagamenti e scadenze utilizza il bot in <b>privato</b>.\n\n` +
+      `➡️ Avviami cliccando sul mio profilo e premi <code>/start</code>.`;
+
+    await bot.sendMessage(msg.chat.id, text, {
+      parse_mode: "HTML"
+    });
+  }
 });
 
 // ==== Config ====
@@ -418,6 +444,7 @@ bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
   await upsertRegistration(msg.from.id, arg);
   await bot.sendMessage(msg.chat.id, registraOkText);
 });
+
 
 // ===== /info =====
 bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
