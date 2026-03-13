@@ -267,7 +267,7 @@ async function findOccupanteByNick(tuoNickRaw) {
 }
 
 // ===== Helpers =====
-
+// comment
 async function findOwnerInCamere_(targetNickUpper) {
   for (const c of CAMERA_RANGES) {
     const rows = await valuesGet(c.range);
