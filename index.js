@@ -344,12 +344,6 @@ function compHeaderIndexMap_(headerRow) {
   };
 }
 
-  return {
-    camera: idx(["camera"]),
-    cf: idx(["cod.fiscale", "codice fiscale", "cf", "tuonick"]),
-  };
-}
-
 async function findCompagnoInCompagni_(targetNickUpper) {
   for (const c of COMP_RANGES) {
     const rows = await valuesGet(c.range);
