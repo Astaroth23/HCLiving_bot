@@ -13,6 +13,7 @@ import fs from "fs";
  * tab_camere_app5p12
  * tab_camere_app7p1
  * tab_camere_app10p1
+ * tab_camere_app13p1
  *
  * Foglio richiesto:
  * Registrazioni (UserID, TuoNick, DataRegistrazione)
@@ -90,16 +91,34 @@ const CAMERA_RANGES = [
   { app: "app5p12", range: "tab_camere_app5p12", base: 800 },
   { app: "app7p1",  range: "tab_camere_app7p1",  base: 500 },
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
+  { app: "app13p1", range: "tab_camere_app13p1", base: 1200 },
 ];
 
 const COMP_RANGES = [
   { app: "app5p12", range: "tab_compagni_app5p12" },
   { app: "app7p1",  range: "tab_compagni_app7p1" },
   { app: "app10p1", range: "tab_compagni_app10p1" },
+  { app: "app13p1", range: "tab_compagni_app13p1" },
 ];
 
-function bonusCompagni(n) {
+function normalizeNick_(s) {
+  return String(s || "").trim().toLowerCase();
+}
+
+function normalizeTelegramTag_(s) {
+  const raw = String(s || "").trim();
+  if (!raw) return "";
+  return raw.startsWith("@") ? raw : `@${raw}`;
+}
+
+function bonusCompagni(app, n) {
   const x = Number(n) || 0;
+  const a = String(app || "").trim().toLowerCase();
+
+  if (a === "app13p1") {
+    return x * 200;
+  }
+
   if (x === 1) return 100;
   if (x === 2) return 200;
   if (x === 3) return 400;
@@ -236,6 +255,7 @@ function headerIndexMap(headerRow) {
     camera: idx("camera"),
     stato: idx("stato"),
     cf: idx("cod.fiscale"),
+    telegram: idx("telegram"),
     comp: idx("n° compagni"),
     scad: idx("scadenza"),
   };
@@ -246,7 +266,7 @@ function isOccupata(stato) {
 }
 
 async function findOccupanteByNick(tuoNickRaw) {
-  const target = String(tuoNickRaw || "").trim().toUpperCase();
+  const target = normalizeNick_(tuoNickRaw);
 
   // 1) Prima: cerca intestatario nelle camere
   const owner = await findOwnerInCamere_(target);
@@ -281,7 +301,7 @@ async function findOwnerInCamere_(targetNickUpper) {
       if (!r || r.length === 0) continue;
       if (!isOccupata(r[idxs.stato])) continue;
 
-      const nick = String(r[idxs.cf] ?? "").trim().toUpperCase();
+      const nick = normalizeNick_(r[idxs.cf]);
       if (nick !== targetNickUpper) continue;
 
       const camera = String(r[idxs.camera] ?? "").trim();
@@ -304,13 +324,11 @@ async function findOwnerInCamere_(targetNickUpper) {
 function compHeaderIndexMap_(headerRow) {
   const h = headerRow.map(x => String(x ?? "").trim().toLowerCase());
 
-  // ci basta Camera e Cod.Fiscale (o CF)
   const idx = (names) => {
     for (const n of names) {
       const k = h.indexOf(n);
       if (k >= 0) return k;
     }
-    // fallback "includes"
     for (let i = 0; i < h.length; i++) {
       for (const n of names) {
         if (h[i].includes(n)) return i;
@@ -318,6 +336,13 @@ function compHeaderIndexMap_(headerRow) {
     }
     return -1;
   };
+
+  return {
+    camera: idx(["camera"]),
+    cf: idx(["cod.fiscale", "codice fiscale", "cf", "tuonick"]),
+    telegram: idx(["telegram"]),
+  };
+}
 
   return {
     camera: idx(["camera"]),
@@ -337,7 +362,7 @@ async function findCompagnoInCompagni_(targetNickUpper) {
       const r = rows[i];
       if (!r || r.length === 0) continue;
 
-      const nick = String(r[idxs.cf] ?? "").trim().toUpperCase();
+      const nick = normalizeNick_(r[idxs.cf]);
       if (nick !== targetNickUpper) continue;
 
       const camera = String(r[idxs.camera] ?? "").trim();
@@ -468,7 +493,7 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
     return;
   }
 
-  const b = bonusCompagni(res.compagni);
+  const b = bonusCompagni(res.appartamento, res.compagni);
   const sett = res.prezzoBase + b;
 
   const days = giorniDaOggi_(res.scadenza);
@@ -562,6 +587,7 @@ const GROUP_CHAT_MAP = {
   app5p12: process.env.GROUP_APP5P12_CHAT_ID,
   app7p1: process.env.GROUP_APP7P1_CHAT_ID,
   app10p1: process.env.GROUP_APP10P1_CHAT_ID,
+  app13p1: process.env.GROUP_APP13P1_CHAT_ID,
 };
 
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
@@ -629,7 +655,7 @@ async function buildDailySummaryForApp_(app) {
     const compNicks = await getCompagniNickByAppCamera_(app, camera);
     const displayName = compNicks.length ? `${ownerNick} & ${compNicks.join(" & ")}` : ownerNick;
 
-    const bonus = bonusCompagni(compCount);
+    const bonus = bonusCompagni(app, compCount);
     const importo = conf.base + bonus;
 
     const days = giorniDaOggi_(scadStr);
@@ -643,7 +669,47 @@ async function buildDailySummaryForApp_(app) {
       sortKey: sortKeyFromDaysTxt_(daysTxt),
     });
   }
+  
+  setInterval(async () => {
+  try {
+    for (const c of CAMERA_RANGES) {
+      const groupId = GROUP_CHAT_MAP[c.app];
+      if (!groupId) continue;
 
+      const rows = await valuesGet(c.range);
+      if (rows.length < 2) continue;
+
+      const idxs = headerIndexMap(rows[0]);
+      if (idxs.camera < 0 || idxs.stato < 0 || idxs.scad < 0) continue;
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0) continue;
+        if (!isOccupata(r[idxs.stato])) continue;
+
+        const camera = String(r[idxs.camera] ?? "").trim();
+        const scadStr = String(r[idxs.scad] ?? "").trim();
+        const days = giorniDaOggi_(scadStr);
+
+        // solo oggi/domani/tra 2 giorni
+        if (days < 0 || days > 2) continue;
+
+        const stateKey = `reminder_${c.app}_${camera}_${fmtDate(scadStr)}_${days}`;
+        const alreadySent = await getState_(stateKey);
+        if (alreadySent === "1") continue;
+
+        const mentions = await getReminderMentionsByAppCamera_(c.app, camera);
+        const text = reminderText_(days, mentions, c.app, camera);
+
+        await bot.sendMessage(groupId, text);
+        await setState_(stateKey, "1");
+      }
+    }
+  } catch (e) {
+    console.log("reminder error:", e?.message || e);
+  }
+  }, 15 * 60 * 1000);
+  
   if (!items.length) {
     const upd = new Date().toLocaleDateString("it-IT", { timeZone: "Europe/Rome" });
     return `📋 GESTIONE AFFITTI ${app.toUpperCase()}\n\nNessuna camera occupata.\n\nAggiornato ${upd}`;
@@ -739,3 +805,60 @@ async function getCompagniNickByAppCamera_(app, camera) {
   }
   return nicks;
 }
+
+async function getReminderMentionsByAppCamera_(app, camera) {
+  const mentions = [];
+
+  // owner
+  const camConf = CAMERA_RANGES.find(x => x.app === app);
+  if (camConf) {
+    const rows = await valuesGet(camConf.range);
+    if (rows.length >= 2) {
+      const idxs = headerIndexMap(rows[0]);
+      const camTarget = String(camera || "").trim();
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0) continue;
+        if (String(r[idxs.camera] ?? "").trim() !== camTarget) continue;
+
+        const tg = idxs.telegram >= 0 ? normalizeTelegramTag_(r[idxs.telegram]) : "";
+        if (tg) mentions.push(tg);
+        break;
+      }
+    }
+  }
+
+  // compagni
+  const compConf = COMP_RANGES.find(x => x.app === app);
+  if (compConf) {
+    const rows = await valuesGet(compConf.range);
+    if (rows.length >= 2) {
+      const idxs = compHeaderIndexMap_(rows[0]);
+      const camTarget = String(camera || "").trim();
+
+      for (let i = 1; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r || r.length === 0) continue;
+        if (String(r[idxs.camera] ?? "").trim() !== camTarget) continue;
+
+        const tg = idxs.telegram >= 0 ? normalizeTelegramTag_(r[idxs.telegram]) : "";
+        if (tg) mentions.push(tg);
+      }
+    }
+  }
+
+  return [...new Set(mentions)];
+}
+
+function reminderText_(days, mentions, app, camera) {
+  let whenTxt = "";
+  if (days === 0) whenTxt = "scade oggi";
+  else if (days === 1) whenTxt = "scade domani";
+  else whenTxt = `scade tra ${days} giorni`;
+
+  const who = mentions.length ? mentions.join(" ") : "Inquilini";
+  return `${who} la scadenza della camera ${camera} in ${app.toUpperCase()} ${whenTxt}, volete rinnovare?`;
+}
+
+
