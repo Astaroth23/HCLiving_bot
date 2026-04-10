@@ -78,7 +78,8 @@ bot.on("new_chat_members", async (msg) => {
     const text =
       `⚜️ <b>Benvenuto ${username}!</b>\n\n` +
       `Per controllare pagamenti e scadenze utilizza il bot in <b>privato</b>.\n\n` +
-      `➡️ Avviami cliccando sul mio profilo e premi <code>/start</code>.`;
+      `➡️ Prima di tutto, avviami cliccando sul mio profilo e premi <code>/start</code>.\n` +
+      `➡️ Usa i seguenti comandi <code>/compagni</code>,<code>/modifiche</code> e <code>/bonifici</code> per avere informazioni sulle tariffe dei compagni, sulle modifiche all'interno della tua camera e sui bonifici.`;
 
     await bot.sendMessage(msg.chat.id, text, {
       parse_mode: "HTML"
@@ -108,7 +109,7 @@ function normalizeNick_(s) {
 function normalizeTelegramTag_(s) {
   const raw = String(s || "").trim();
   if (!raw) return "";
-  return raw.startsWith("@") ? raw : `@${raw}`;
+  return raw.sWith("@") ? raw : `@${raw}`;
 }
 
 function bonusCompagni(app, n) {
@@ -410,12 +411,63 @@ function startPrivatoText(usernameOrAt) {
     `In questo bot potrai controllare:\n` +
     `• I tuoi <b>pagamenti</b>\n` +
     `• Le tue <b>scadenze</b>\n` +
-    `• Le tue <b>camere</b>\n\n` +
+    `• La tua <b>camera</b>\n\n` +
     `Per iniziare utilizza <code>/registra nickname</code>\n\n` +
-    `Se sei già registrato utilizza <code>/info</code>\n\n` +
+    `Se sei già registrato utilizza <code>/info</code>\n` +
+    `Per altri comandi consultare il gruppo principale.\n\n` +
     `<i>Bot sviluppato da Astaroth19</i>`
   );
 }
+
+const helpText =
+`⚜️ <b>Lista comandi in privato: </b>\n\n` +
+`<code>/start</code>\n` +
+`<code>/info</code>\n` +
+`<code>/registra</code> tuoNick\n\n` +
+`⚜️ <b>Lista comandi: </b>\n\n` +
+`<code>/help</code>\n` +
+`<code>/bonifici</code>\n` +
+`<code>/compagni</code>\n` +
+`<code>/modifiche</code>\n` +
+`<code>/about</code>\n`
+`<code>/ping (non abusare)</code>\n`;
+
+const aboutText =
+`⚜️ <b>Su di noi:</b>\n\n` +
+`Bot sviluppato principalmente per noia, non a scopo di lucro, esclusiva HcLiving per @AtlantisRP. Per bug, segnalazioni o trattamenti speciali 😏 contattare @PollyEugene\n` +
+`<i>Astaroth19</i>`;
+  
+const bonificiText = 
+`⚜️ <b>Bonifici</b>\n\n` +
+`Nome p.IVA <i>𝐇𝐂 𝐋𝐢𝐯𝐢𝐧𝐠</i>. Rimborseremo interamente il costo della tassa bancaria, secondo le seguenti condizioni:\n\n` + 
+`<b>𝐓𝐚𝐫𝐢𝐟𝐟𝐞 𝐁𝐨𝐧𝐢𝐟𝐢𝐜𝐨</b>\n\n` +
+`• Da 0€ a 1000€ → 30€\n` +
+`• Oltre 1000€ → 3%\n\n` +
+`✦ <b>𝐂𝐨𝐦𝐞 𝐑𝐢𝐜𝐡𝐢𝐞𝐝𝐞𝐫𝐞 𝐢𝐥 𝐑𝐢𝐦𝐛𝐨𝐫𝐬𝐨</b>\n\n` +  
+`Per richiedere il rimborso, compilate il seguente format e scrivetelo qui:\n` +
+`Nickname:\n` +
+`Somma pagata:\n` +
+`Tassa pagata:\n` +
+`#rimborso:\n\n` +
+`Il rimborso verrà emesso il prima possibile, <b>attendete sempre pazientemente. </b>`;
+
+const compagniText = 
+`⚜️ <b>Compagni</b>\n\n` +
+`Si informano gli inquilini del regolamento interno riguardo la condivisione della camera con più di un compagno 
+(fino a un massimo di 𝟒).\n` + 
+`<b>𝐓𝐀𝐑𝐈𝐅𝐅𝐄</b> (𝐬𝐮𝐩𝐩𝐥𝐞𝐦𝐞𝐧𝐭𝐨 𝐬𝐞𝐭𝐭𝐢𝐦𝐚𝐧𝐚𝐥𝐞):\n` +
+`• 𝟏 𝐜𝐨𝐦𝐩𝐚𝐠𝐧𝐨: +𝟏𝟎𝟎\n` +
+`• 2 𝐜𝐨𝐦𝐩𝐚𝐠𝐧i: +2𝟎𝟎\n` +
+`• 3 𝐜𝐨𝐦𝐩𝐚𝐠𝐧i: +4𝟎𝟎\n` +
+`• 4 𝐜𝐨𝐦𝐩𝐚𝐠𝐧i: +6𝟎𝟎\n\n` +
+`Il relativo importo verrà aggiunto al pagamento della quota settimanale.`;
+
+const modificheText =
+`⚜️ <b>Modifiche</b>\n\n` +
+`• Modifiche rapide (< 15 minuti): 0€\n` + 
+`• Modifiche estese (> 15 minuti): 1.000€\n` +
+`L’importo relativo verrà addebitato prima della prestazione del servizio.\n\n` +
+`❗️ Importante: noi di <i>HC 𝐋𝐢𝐯𝐢𝐧𝐠 </i> mettiamo sempre al primo posto il buonsenso, mai il vil denaro. La tariffa estesa verrà applicata SOLO per modifiche importanti alla camera, mai per piccole questioni.`;
 
 const startGruppoText =
 `⚜️ <b>Bot HcLiving</b>\n\n` +
@@ -444,6 +496,61 @@ bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
   await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
   parse_mode: "HTML"
 });
+});
+
+// ===== /help =====
+bot.onText(/^\/help(?:@\w+)?$/i, async (msg) => {
+  const isGroup = msg.chat.type !== "private";
+  if (isGroup) {
+    await bot.sendMessage(msg.chat.id, helpText, {
+    parse_mode: "HTML"
+    });
+    return;
+  }
+});
+
+// ===== /modifiche =====
+bot.onText(/^\/modifiche(?:@\w+)?$/i, async (msg) => {
+  const isGroup = msg.chat.type !== "private";
+  if (isGroup) {
+    await bot.sendMessage(msg.chat.id, modificheText, {
+    parse_mode: "HTML"
+    });
+    return;
+  }
+});
+
+// ===== /bonifici =====
+bot.onText(/^\/bonifici(?:@\w+)?$/i, async (msg) => {
+  const isGroup = msg.chat.type !== "private";
+  if (isGroup) {
+    await bot.sendMessage(msg.chat.id, bonificiText, {
+    parse_mode: "HTML"
+    });
+    return;
+  }
+});
+
+// ===== /about =====
+bot.onText(/^\/about(?:@\w+)?$/i, async (msg) => {
+  const isGroup = msg.chat.type !== "private";
+  if (isGroup) {
+    await bot.sendMessage(msg.chat.id, aboutText, {
+    parse_mode: "HTML"
+    });
+    return;
+  }
+});
+
+// ===== /compagni =====
+bot.onText(/^\/compagni(?:@\w+)?$/i, async (msg) => {
+  const isGroup = msg.chat.type !== "private";
+  if (isGroup) {
+    await bot.sendMessage(msg.chat.id, compagniText, {
+    parse_mode: "HTML"
+    });
+    return;
+  }
 });
 
 // ===== /registra nickname =====
