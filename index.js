@@ -464,10 +464,10 @@ const compagniText =
 
 const modificheText =
 `⚜️ <b>Modifiche</b>\n\n` +
-`• Modifiche rapide (< 15 minuti): 0€\n` + 
-`• Modifiche estese (> 15 minuti): 1.000€\n` +
+`• Modifiche rapide (&lt; 15 minuti): 0€\n` +
+`• Modifiche estese (&gt; 15 minuti): 1.000€\n` +
 `L’importo relativo verrà addebitato prima della prestazione del servizio.\n\n` +
-`❗️ Importante: noi di <i>HC 𝐋𝐢𝐯𝐢𝐧𝐠 </i> mettiamo sempre al primo posto il buonsenso, mai il vil denaro. La tariffa estesa verrà applicata SOLO per modifiche importanti alla camera, mai per piccole questioni.`;
+`❗️ Importante: noi di <i>HC 𝐋𝐢𝐯𝐢𝐧𝐠</i> mettiamo sempre al primo posto il buonsenso, mai il vil denaro. La tariffa estesa verrà applicata SOLO per modifiche importanti alla camera, mai per piccole questioni.`;
 
 const startGruppoText =
 `⚜️ <b>Bot HcLiving</b>\n\n` +
