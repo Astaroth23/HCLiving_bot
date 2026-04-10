@@ -109,7 +109,7 @@ function normalizeNick_(s) {
 function normalizeTelegramTag_(s) {
   const raw = String(s || "").trim();
   if (!raw) return "";
-  return raw.sWith("@") ? raw : `@${raw}`;
+  return raw.startsWith("@") ? raw : `@${raw}`;
 }
 
 function bonusCompagni(app, n) {
@@ -429,7 +429,7 @@ const helpText =
 `<code>/bonifici</code>\n` +
 `<code>/compagni</code>\n` +
 `<code>/modifiche</code>\n` +
-`<code>/about</code>\n`
+`<code>/about</code>\n` +
 `<code>/ping (non abusare)</code>\n`;
 
 const aboutText =
@@ -472,7 +472,7 @@ const modificheText =
 const startGruppoText =
 `⚜️ <b>Bot HcLiving</b>\n\n` +
 `❌ Il bot <b>non può essere utilizzato nei gruppi</b>.\n` +
-`➡️ Avviami in <b>privato</b> per registrarti.`;
+`➡️ Avviami in <b>privato</b> o usa <code>/help</code>.`;
 
 const registraErroreText =
   `Utilizza correttamente il comando "/registra nickname"`;
