@@ -14,7 +14,8 @@ import fs from "fs";
  * tab_camere_app7p1
  * tab_camere_app10p1
  * tab_camere_app13p1
- *
+ * tab_camere_app5p17
+ * tab_camere_app7p6
  * Foglio richiesto:
  * Registrazioni (UserID, TuoNick, DataRegistrazione)
  */
@@ -79,7 +80,7 @@ bot.on("new_chat_members", async (msg) => {
       `⚜️ <b>Benvenuto ${username}!</b>\n\n` +
       `Per controllare pagamenti e scadenze utilizza il bot in <b>privato</b>.\n\n` +
       `➡️ Prima di tutto, avviami cliccando sul mio profilo e premi <code>/start</code>.\n` +
-      `➡️ Usa i seguenti comandi <code>/compagni</code>,<code>/modifiche</code> e <code>/bonifici</code> per avere informazioni sulle tariffe dei compagni, sulle modifiche all'interno della tua camera e sui bonifici.`;
+      `➡️ Usa il seguente comando <code>/help</code> per avere informazioni sulle tariffe dei compagni, sulle modifiche all'interno della tua camera e molto altro ancora!`;
 
     await bot.sendMessage(msg.chat.id, text, {
       parse_mode: "HTML"
@@ -93,6 +94,8 @@ const CAMERA_RANGES = [
   { app: "app7p1",  range: "tab_camere_app7p1",  base: 500 },
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
   { app: "app13p1", range: "tab_camere_app13p1", base: 1200 },
+  { app: "app13p1", range: "tab_camere_app6p7", base: 3000 },
+  { app: "app13p1", range: "tab_camere_app5p17", base: 600 }
 ];
 
 const COMP_RANGES = [
@@ -100,6 +103,8 @@ const COMP_RANGES = [
   { app: "app7p1",  range: "tab_compagni_app7p1" },
   { app: "app10p1", range: "tab_compagni_app10p1" },
   { app: "app13p1", range: "tab_compagni_app13p1" },
+  { app: "app13p1", range: "tab_compagni_app6p7" },
+  { app: "app13p1", range: "tab_compagni_app5p17" },
 ];
 
 function normalizeNick_(s) {
@@ -701,6 +706,8 @@ const GROUP_CHAT_MAP = {
   app7p1: process.env.GROUP_APP7P1_CHAT_ID,
   app10p1: process.env.GROUP_APP10P1_CHAT_ID,
   app13p1: process.env.GROUP_APP13P1_CHAT_ID,
+  app6p7: process.env.GROUP_APP6P7_CHAT_ID,
+  app5p17: process.env.GROUP_APP5P17_CHAT_ID,
 };
 
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
