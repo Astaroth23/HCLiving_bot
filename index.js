@@ -94,7 +94,7 @@ const CAMERA_RANGES = [
   { app: "app7p1",  range: "tab_camere_app7p1",  base: 500 },
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
   { app: "app13p1", range: "tab_camere_app13p1", base: 1200 },
-  { app: "app6p7", range: "tab_camere_app6p7", base: 3000 },
+  { app: "app7p6", range: "tab_camere_app7p6", base: 3000 },
   { app: "app5p17", range: "tab_camere_app5p17", base: 600 }
 ];
 
@@ -103,7 +103,7 @@ const COMP_RANGES = [
   { app: "app7p1",  range: "tab_compagni_app7p1" },
   { app: "app10p1", range: "tab_compagni_app10p1" },
   { app: "app13p1", range: "tab_compagni_app13p1" },
-  { app: "app6p7", range: "tab_compagni_app6p7" },
+  { app: "app7p6", range: "tab_compagni_app7p6" },
   { app: "app5p17", range: "tab_compagni_app5p17" },
 ];
 
@@ -706,7 +706,7 @@ const GROUP_CHAT_MAP = {
   app7p1: process.env.GROUP_APP7P1_CHAT_ID,
   app10p1: process.env.GROUP_APP10P1_CHAT_ID,
   app13p1: process.env.GROUP_APP13P1_CHAT_ID,
-  app6p7: process.env.GROUP_APP6P7_CHAT_ID,
+  app7p6: process.env.GROUP_APP7P6_CHAT_ID,
   app5p17: process.env.GROUP_APP5P17_CHAT_ID,
 };
 
