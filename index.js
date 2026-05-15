@@ -94,8 +94,8 @@ const CAMERA_RANGES = [
   { app: "app7p1",  range: "tab_camere_app7p1",  base: 500 },
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
   { app: "app13p1", range: "tab_camere_app13p1", base: 1200 },
-  { app: "app13p1", range: "tab_camere_app6p7", base: 3000 },
-  { app: "app13p1", range: "tab_camere_app5p17", base: 600 }
+  { app: "app6p7", range: "tab_camere_app6p7", base: 3000 },
+  { app: "app5p17", range: "tab_camere_app5p17", base: 600 }
 ];
 
 const COMP_RANGES = [
@@ -103,8 +103,8 @@ const COMP_RANGES = [
   { app: "app7p1",  range: "tab_compagni_app7p1" },
   { app: "app10p1", range: "tab_compagni_app10p1" },
   { app: "app13p1", range: "tab_compagni_app13p1" },
-  { app: "app13p1", range: "tab_compagni_app6p7" },
-  { app: "app13p1", range: "tab_compagni_app5p17" },
+  { app: "app6p7", range: "tab_compagni_app6p7" },
+  { app: "app5p17", range: "tab_compagni_app5p17" },
 ];
 
 function normalizeNick_(s) {
