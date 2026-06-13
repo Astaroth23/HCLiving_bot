@@ -93,7 +93,7 @@ const CAMERA_RANGES = [
   { app: "app5p12", range: "tab_camere_app5p12", base: 800 },
   { app: "app7p1",  range: "tab_camere_app7p1",  base: 500 },
   { app: "app10p1", range: "tab_camere_app10p1", base: 500 },
-  { app: "app13p1", range: "tab_camere_app13p1", base: 1200 },
+  { app: "app13p1", range: "tab_camere_app13p1", base: 2000 },
   { app: "app7p6", range: "tab_camere_app7p6", base: 3000 },
   { app: "app5p17", range: "tab_camere_app5p17", base: 600 },
   { app: "app1p16", range: "tab_camere_app1p16", base: 800 },
