@@ -99,6 +99,7 @@ const CAMERA_RANGES = [
   { app: "app1p16", range: "tab_camere_app1p16", base: 800 },
   { app: "app21p3", range: "tab_camere_app21p3", base: 600 },
   { app: "app10p17", range: "tab_camere_app10p17", base: 2500 },
+  { app: "app8p15", range: "tab_camere_app8p15", base: 800 },
 ];
 
 const COMP_RANGES = [
@@ -714,6 +715,7 @@ const GROUP_CHAT_MAP = {
   app1p16: process.env.GROUP_APP1P16_CHAT_ID,
   app21p3: process.env.GROUP_APP21P3_CHAT_ID,
   app10p17: process.env.GROUP_APP10P17_CHAT_ID,
+  app8p15: process.env.GROUP_APP8P15_CHAT_ID,
 };
 
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
