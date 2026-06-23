@@ -54,13 +54,17 @@ const sheets = google.sheets({ version: "v4", auth });
 
 async function warmupGoogleAuth_() {
   try {
-    await auth.authorize();
+    const token = await auth.authorize();
     console.log("Google auth OK");
+    console.log("Access token exists:", !!token?.access_token);
+    console.log("Expiry date:", token?.expiry_date);
+    return token;
   } catch (err) {
     console.error("Google auth warmup failed:", err);
     throw err;
   }
 }
+
 
 
 const LOCK_FILE = "/tmp/bot.lock";
@@ -1226,3 +1230,15 @@ function reminderText_(days, mentions, app, camera) {
   const who = mentions.length ? mentions.join(" ") : "Inquilini";
   return `${who} la scadenza della camera ${camera} in ${app.toUpperCase()} ${whenTxt}, volete rinnovare?`;
 }
+
+console.log("SA client_email:", SA.client_email);
+console.log("SA project_id:", SA.project_id);
+console.log(
+  "Private key starts correctly:",
+  SA.private_key?.startsWith("-----BEGIN PRIVATE KEY-----")
+);
+console.log(
+  "Private key ends correctly:",
+  SA.private_key?.trim().endsWith("-----END PRIVATE KEY-----")
+);
+
