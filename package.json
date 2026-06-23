@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "main": "index.js",
   "type": "module",
-  "engines": { "node": ">=18" },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "google-auth-library": "^9.11.0",
     "googleapis": "^140.0.0",
