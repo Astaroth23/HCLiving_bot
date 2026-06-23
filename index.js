@@ -56,9 +56,13 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-await bot.getMe().then(me => {
+try {
+  const me = await bot.getMe();
   bot.botInfo = me;
-});
+} catch (err) {
+  console.error("Errore bot.getMe():", err);
+}
+
 
 bot.onText(/^\/ping$/, async (msg) => {
   console.log("CHAT ID:", msg.chat.id);
@@ -551,198 +555,257 @@ const infoNonRegistratoText =
 // ===== /start =====
 bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
   try {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
-    await bot.sendMessage(msg.chat.id, startGruppoText, {
-    parse_mode: "HTML"
+    const isGroup = msg.chat.type !== "private";
+
+    if (isGroup) {
+      await bot.sendMessage(msg.chat.id, startGruppoText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
+    const at = msg.from?.username ? `@${msg.from.username}` : "@";
+
+    await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
+      parse_mode: "HTML",
     });
-    return;
+  } catch (err) {
+    console.error("Errore /start:", err);
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
   }
-  const at = msg.from?.username ? `@${msg.from.username}` : "@";
-  await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
-  parse_mode: "HTML"
-}
-}
-  catch (err) {
-    console.error("Errore /help:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /help =====
 bot.onText(/^\/help(?:@\w+)?$/i, async (msg) => {
   try {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
-    await bot.sendMessage(msg.chat.id, helpText, {
-    parse_mode: "HTML"
-    });
-    return;
-  }
+    const isGroup = msg.chat.type !== "private";
+
+    if (isGroup) {
+      await bot.sendMessage(msg.chat.id, helpText, {
+        parse_mode: "HTML",
+      });
+      return;
     }
-  catch (err) {
+
+    await bot.sendMessage(msg.chat.id, helpText, {
+      parse_mode: "HTML",
+    });
+  } catch (err) {
     console.error("Errore /help:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
+  }
 });
 
 // ===== /modifiche =====
 bot.onText(/^\/modifiche(?:@\w+)?$/i, async (msg) => {
   try {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
+    const isGroup = msg.chat.type !== "private";
+
+    if (isGroup) {
+      await bot.sendMessage(msg.chat.id, modificheText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
     await bot.sendMessage(msg.chat.id, modificheText, {
-    parse_mode: "HTML"
+      parse_mode: "HTML",
     });
-    return;
-  }
-  }
-  catch (err) {
+  } catch (err) {
     console.error("Errore /modifiche:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
+  }
 });
 
 // ===== /bonifici =====
 bot.onText(/^\/bonifici(?:@\w+)?$/i, async (msg) => {
   try {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
+    const isGroup = msg.chat.type !== "private";
+
+    if (isGroup) {
+      await bot.sendMessage(msg.chat.id, bonificiText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
     await bot.sendMessage(msg.chat.id, bonificiText, {
-    parse_mode: "HTML"
+      parse_mode: "HTML",
     });
-    return;
-  }
-  }
-  catch (err) {
+  } catch (err) {
     console.error("Errore /bonifici:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
+  }
 });
 
 // ===== /about =====
 bot.onText(/^\/about(?:@\w+)?$/i, async (msg) => {
   try {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
+    const isGroup = msg.chat.type !== "private";
+
+    if (isGroup) {
+      await bot.sendMessage(msg.chat.id, aboutText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
     await bot.sendMessage(msg.chat.id, aboutText, {
-    parse_mode: "HTML"
+      parse_mode: "HTML",
     });
-    return;
-  }
-  }
-  catch (err) {
+  } catch (err) {
     console.error("Errore /about:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
+  }
 });
 
 // ===== /compagni =====
 bot.onText(/^\/compagni(?:@\w+)?$/i, async (msg) => {
   try {
     const isGroup = msg.chat.type !== "private";
+
     if (isGroup) {
+      await bot.sendMessage(msg.chat.id, compagniText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
     await bot.sendMessage(msg.chat.id, compagniText, {
-    parse_mode: "HTML"
+      parse_mode: "HTML",
     });
-    return;
-  }
-  }
-  catch (err) {
+  } catch (err) {
     console.error("Errore /compagni:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
-  
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
+  }
 });
 
 // ===== /registra nickname =====
 bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
   try {
     if (msg.chat.type !== "private") {
-      await bot.sendMessage(msg.chat.id, startGruppoText, { parse_mode: "HTML" });
+      await bot.sendMessage(msg.chat.id, startGruppoText, {
+        parse_mode: "HTML",
+      });
       return;
     }
 
-  const arg = (match && match[1]) ? String(match[1]).trim() : "";
-  if (!arg) {
-    await bot.sendMessage(msg.chat.id, registraErroreText);
-    return;
-  }
+    const arg = match && match[1] ? String(match[1]).trim() : "";
+    if (!arg) {
+      await bot.sendMessage(msg.chat.id, registraErroreText);
+      return;
+    }
 
-  const res = await findOccupanteByNick(arg);
-  if (!res.found) {
+    const res = await findOccupanteByNick(arg);
+    if (!res.found) {
+      await bot.sendMessage(
+        msg.chat.id,
+        `TuoNick non trovato oppure non risulti occupante.\nHai scritto: ${arg}`
+      );
+      return;
+    }
+
+    await upsertRegistration(msg.from.id, arg);
+    await bot.sendMessage(msg.chat.id, registraOkText);
+  } catch (err) {
+    console.error("Errore /registra:", err);
     await bot.sendMessage(
       msg.chat.id,
-      `TuoNick non trovato oppure non risulti occupante.\nHai scritto: ${arg}`
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
     );
-    return;
-  }
-
-  await upsertRegistration(msg.from.id, arg);
-  await bot.sendMessage(msg.chat.id, registraOkText);
-    } catch (err) {
-    console.error("Errore /registra:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
   }
 });
-
 
 // ===== /info =====
 bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
   try {
-  if (msg.chat.type !== "private") {
-    await bot.sendMessage(msg.chat.id, startGruppoText, {
-      parse_mode: "HTML"
+    if (msg.chat.type !== "private") {
+      await bot.sendMessage(msg.chat.id, startGruppoText, {
+        parse_mode: "HTML",
+      });
+      return;
+    }
+
+    const userId = msg.from?.id;
+    if (!userId) return;
+
+    const nick = await getRegisteredNick(userId);
+    if (!nick) {
+      await bot.sendMessage(msg.chat.id, infoNonRegistratoText);
+      return;
+    }
+
+    const res = await findOccupanteByNick(nick);
+    if (!res.found) {
+      await bot.sendMessage(
+        msg.chat.id,
+        "Sei registrato, ma ora non risulti occupante di una camera."
+      );
+      return;
+    }
+
+    const b = bonusCompagni(res.appartamento, res.compagni);
+    const sett = res.prezzoBase + b;
+
+    const days = giorniDaOggi_(res.scadenza);
+
+    let daysTxt;
+    if (days > 0) {
+      daysTxt = `(-${days} giorni)`;
+    } else if (days === 0) {
+      daysTxt = `⚠️ <b>Scade oggi</b>`;
+    } else {
+      daysTxt = `❗ <b>Scaduto da ${Math.abs(days)} giorni</b>`;
+    }
+
+    const ruoloTxt =
+      res.ruolo === "compagno"
+        ? "👥 <i>Sei registrato come compagno</i>\n\n"
+        : "";
+
+    const reply =
+      `⚜️ <b>Area Personale</b>\n` +
+      `👤 <b>${nick}</b>\n\n` +
+      ruoloTxt +
+      `🏠 <b>Appartamento:</b> ${res.appartamento.toUpperCase()}\n` +
+      `🛏 <b>Camera:</b> ${res.camera}\n` +
+      `👥 <b>Compagni:</b> ${res.compagni} (bonus +${b}€)\n\n` +
+      `💰 <b>Prezzo settimanale:</b> ${sett}€\n` +
+      `📅 <b>Scadenza:</b> ${fmtDate(res.scadenza)}\n` +
+      `⏳ <b>Giorni mancanti:</b> ${daysTxt}`;
+
+    await bot.sendMessage(msg.chat.id, reply, {
+      parse_mode: "HTML",
     });
-    return;
-  }
-
-  const userId = msg.from?.id;
-  if (!userId) return;
-
-  const nick = await getRegisteredNick(userId);
-  if (!nick) {
-    await bot.sendMessage(msg.chat.id, infoNonRegistratoText);
-    return;
-  }
-
-  const res = await findOccupanteByNick(nick);
-  if (!res.found) {
-    await bot.sendMessage(msg.chat.id, "Sei registrato, ma ora non risulti occupante di una camera.");
-    return;
-  }
-
-  const b = bonusCompagni(res.appartamento, res.compagni);
-  const sett = res.prezzoBase + b;
-
-  const days = giorniDaOggi_(res.scadenza);
-
-  let daysTxt;
-  if (days > 0) {
-    daysTxt = `(-${days} giorni)`;
-  } else if (days === 0) {
-    daysTxt = `⚠️ <b>Scade oggi</b>`;
-  } else {
-    daysTxt = `❗ <b>Scaduto da ${Math.abs(days)} giorni</b>`;
-  }
-
-  const ruoloTxt = res.ruolo === "compagno"
-    ? "👥 <i>Sei registrato come compagno</i>\n\n"
-    : "";
-
-  const reply =
-    `⚜️ <b>Area Personale</b>\n` +
-    `👤 <b>${nick}</b>\n\n` +
-    ruoloTxt +
-    `🏠 <b>Appartamento:</b> ${res.appartamento.toUpperCase()}\n` +
-    `🛏 <b>Camera:</b> ${res.camera}\n` +
-    `👥 <b>Compagni:</b> ${res.compagni} (bonus +${b}€)\n\n` +
-    `💰 <b>Prezzo settimanale:</b> ${sett}€\n` +
-    `📅 <b>Scadenza:</b> ${fmtDate(res.scadenza)}\n` +
-    `⏳ <b>Giorni mancanti:</b> ${daysTxt}`;
-
-  await bot.sendMessage(msg.chat.id, reply, {
-    parse_mode: "HTML"
-  });
-    } catch (err) {
+  } catch (err) {
     console.error("Errore /info:", err);
-    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+    await bot.sendMessage(
+      msg.chat.id,
+      "Si e' verificato un errore temporaneo. Riprova tra qualche secondo."
+    );
   }
 });
+
+// ===== helpers giorni =====
+
 
 // ===== helpers giorni =====
 function giorniDaOggi_(scadenza) {
