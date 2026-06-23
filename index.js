@@ -561,8 +561,8 @@ bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
   const at = msg.from?.username ? `@${msg.from.username}` : "@";
   await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
   parse_mode: "HTML"
-});
-    }
+}
+}
   catch (err) {
     console.error("Errore /help:", err);
     await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
