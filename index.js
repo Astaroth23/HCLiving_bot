@@ -44,6 +44,30 @@ const auth = new google.auth.JWT({
 });
 const sheets = google.sheets({ version: "v4", auth });
 
+async function safeGoogleCall(fn, retries = 3) {
+  let lastErr;
+
+  for (let i = 0; i < retries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+
+      const wait = 500 * (i + 1);
+      await new Promise(r => setTimeout(r, wait));
+    }
+  }
+
+  throw lastErr;
+}
+const CACHE_TTL_MS = 30 * 1000; // 30 secondi
+
+const sheetCache = new Map();
+/*
+  key: range
+  value: { data, ts }
+*/
+
 const LOCK_FILE = "/tmp/bot.lock";
 
 try {
@@ -189,27 +213,22 @@ function formatDDMMYYYY_(dt) {
 
 // ===== Google Sheets helpers =====
 async function valuesGet(range) {
- try {
-   const res = await sheets.spreadsheets.values.get({
-     spreadsheetId: SPREADSHEET_ID,
-     range,
-     valueRenderOption: "UNFORMATTED_VALUE",
-     dateTimeRenderOption: "FORMATTED_STRING",
-   });
+  try {
+    const res = await safeGoogleCall(() =>
+      sheets.spreadsheets.values.get({
+        spreadsheetId: SPREADSHEET_ID,
+        range,
+        valueRenderOption: "UNFORMATTED_VALUE",
+        dateTimeRenderOption: "FORMATTED_STRING",
+      })
+    );
 
-   return res.data.values || [];
-
- } catch (err) {
-   console.error("[valuesGet]", range);
-
-   if (err.response?.data) {
-     console.error(err.response.data);
-   } else {
-     console.error(err.message);
-   }
-
-   return [];
- }
+    return res.data.values || [];
+  } catch (err) {
+    console.error("[valuesGet]", range);
+    console.error(err.message);
+    return [];
+  }
 }
 
 async function valuesAppend(rangeA1, row) {
@@ -283,6 +302,33 @@ function headerIndexMap(headerRow) {
     comp: idx("n° compagni"),
     scad: idx("scadenza"),
   };
+}
+
+async function extractCompagni(app, camera, compRowsCache = null) {
+  const conf = COMP_RANGES.find(x => x.app === app);
+  if (!conf) return [];
+
+  const rows = compRowsCache || await valuesGet(conf.range);
+  if (rows.length < 2) return [];
+
+  const header = rows[0].map(x => String(x ?? "").trim().toLowerCase());
+  const idxCam = header.indexOf("camera");
+  const idxCf = header.indexOf("cod.fiscale");
+
+  if (idxCam < 0 || idxCf < 0) return [];
+
+  const camTarget = String(camera).trim();
+  const out = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r) continue;
+
+    if (String(r[idxCam]).trim() !== camTarget) continue;
+    out.push(String(r[idxCf] || "").trim());
+  }
+
+  return out;
 }
 
 function isOccupata(stato) {
@@ -731,7 +777,17 @@ const GROUP_CHAT_MAP = {
   app10p17: process.env.GROUP_APP10P17_CHAT_ID,
   app8p15: process.env.GROUP_APP8P15_CHAT_ID,
 };
+
 console.log(GROUP_CHAT_MAP);
+
+async function preloadAllCamere() {
+  const ranges = CAMERA_RANGES.map(c => c.range);
+
+  await Promise.allSettled(
+    ranges.map(r => valuesGet(r))
+  );
+}
+
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
 const DAILY_SUMMARY_MINUTE = Number(process.env.DAILY_SUMMARY_MINUTE ?? 0);
 
@@ -792,8 +848,10 @@ async function buildDailySummaryForApp_(app) {
 
     const compCount = idxs.comp >= 0 ? Number(r[idxs.comp]) || 0 : 0;
     const scadStr = idxs.scad >= 0 ? String(r[idxs.scad] ?? "").trim() : "";
-    const telegrams = await getTelegramByAppCamera_(app, camera);
-    const compNicks = await getCompagniNickByAppCamera_(app, camera);
+    const camData = await valuesGet(conf.range);
+    const compData = await valuesGet(COMP_RANGES.find(x => x.app === app)?.range);
+    const telegrams = extractTelegram(camData, compData, camera);
+    const compNicks = extractCompagni(compData, camera);
     const displayName = compNicks.length ? `${ownerNick} & ${compNicks.join(" & ")}` : ownerNick;
 
     const bonus = bonusCompagni(app, compCount);
