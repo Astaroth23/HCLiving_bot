@@ -189,13 +189,27 @@ function formatDDMMYYYY_(dt) {
 
 // ===== Google Sheets helpers =====
 async function valuesGet(range) {
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range,
-    valueRenderOption: "UNFORMATTED_VALUE",
-    dateTimeRenderOption: "FORMATTED_STRING",
-  });
-  return res.data.values || [];
+ try {
+   const res = await sheets.spreadsheets.values.get({
+     spreadsheetId: SPREADSHEET_ID,
+     range,
+     valueRenderOption: "UNFORMATTED_VALUE",
+     dateTimeRenderOption: "FORMATTED_STRING",
+   });
+
+   return res.data.values || [];
+
+ } catch (err) {
+   console.error("[valuesGet]", range);
+
+   if (err.response?.data) {
+     console.error(err.response.data);
+   } else {
+     console.error(err.message);
+   }
+
+   return [];
+ }
 }
 
 async function valuesAppend(rangeA1, row) {
@@ -717,7 +731,7 @@ const GROUP_CHAT_MAP = {
   app10p17: process.env.GROUP_APP10P17_CHAT_ID,
   app8p15: process.env.GROUP_APP8P15_CHAT_ID,
 };
-
+console.log(GROUP_CHAT_MAP);
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
 const DAILY_SUMMARY_MINUTE = Number(process.env.DAILY_SUMMARY_MINUTE ?? 0);
 
