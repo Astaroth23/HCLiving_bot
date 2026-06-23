@@ -45,21 +45,21 @@ const auth = new google.auth.JWT({
 const sheets = google.sheets({ version: "v4", auth });
 
 async function safeGoogleCall(fn, retries = 3) {
-  let lastErr;
-
   for (let i = 0; i < retries; i++) {
     try {
       return await fn();
     } catch (err) {
-      lastErr = err;
+      const msg = err?.message || "";
 
-      const wait = 500 * (i + 1);
-      await new Promise(r => setTimeout(r, wait));
+      console.log(`[Google retry ${i + 1}]`, msg);
+
+      if (i === retries - 1) throw err;
+
+      await new Promise(r => setTimeout(r, 800 * (i + 1)));
     }
   }
-
-  throw lastErr;
 }
+
 const CACHE_TTL_MS = 30 * 1000; // 30 secondi
 
 const sheetCache = new Map();
@@ -213,22 +213,16 @@ function formatDDMMYYYY_(dt) {
 
 // ===== Google Sheets helpers =====
 async function valuesGet(range) {
-  try {
-    const res = await safeGoogleCall(() =>
-      sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range,
-        valueRenderOption: "UNFORMATTED_VALUE",
-        dateTimeRenderOption: "FORMATTED_STRING",
-      })
-    );
+  return safeGoogleCall(async () => {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range,
+      valueRenderOption: "UNFORMATTED_VALUE",
+      dateTimeRenderOption: "FORMATTED_STRING",
+    });
 
     return res.data.values || [];
-  } catch (err) {
-    console.error("[valuesGet]", range);
-    console.error(err.message);
-    return [];
-  }
+  });
 }
 
 async function valuesAppend(rangeA1, row) {
@@ -359,6 +353,7 @@ async function findOccupanteByNick(tuoNickRaw) {
 // ===== Helpers =====
 // comment
 async function findOwnerInCamere_(targetNickUpper) {
+  await new Promise(r => setTimeout(r, 150));
   for (const c of CAMERA_RANGES) {
     const rows = await valuesGet(c.range);
     if (rows.length < 2) continue;
