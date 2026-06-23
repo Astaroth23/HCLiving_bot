@@ -3,6 +3,13 @@ import { google } from "googleapis";
 import http from "http";
 import fs from "fs";
 
+google.options({
+  headers: {
+    "Accept-Encoding": "identity",
+  },
+});
+
+
 /**
  * ENV richieste:
  * TELEGRAM_TOKEN
@@ -40,9 +47,21 @@ try {
 const auth = new google.auth.JWT({
   email: SA.client_email,
   key: SA.private_key,
-  scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  scopes: ["[googleapis.com](https://www.googleapis.com/auth/spreadsheets)"],
 });
+
 const sheets = google.sheets({ version: "v4", auth });
+
+async function warmupGoogleAuth_() {
+  try {
+    await auth.authorize();
+    console.log("Google auth OK");
+  } catch (err) {
+    console.error("Google auth warmup failed:", err);
+    throw err;
+  }
+}
+
 
 const LOCK_FILE = "/tmp/bot.lock";
 
@@ -57,11 +76,18 @@ try {
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
 try {
+  await warmupGoogleAuth_();
+} catch (err) {
+  console.error("Startup auth failed:", err);
+}
+
+try {
   const me = await bot.getMe();
   bot.botInfo = me;
 } catch (err) {
   console.error("Errore bot.getMe():", err);
 }
+
 
 
 bot.onText(/^\/ping$/, async (msg) => {
