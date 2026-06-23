@@ -188,34 +188,90 @@ function formatDDMMYYYY_(dt) {
 }
 
 // ===== Google Sheets helpers =====
-async function valuesGet(range) {
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId: SPREADSHEET_ID,
-    range,
-    valueRenderOption: "UNFORMATTED_VALUE",
-    dateTimeRenderOption: "FORMATTED_STRING",
-  });
-  return res.data.values || [];
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function valuesAppend(rangeA1, row) {
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: rangeA1,
-    valueInputOption: "RAW",
-    insertDataOption: "INSERT_ROWS",
-    requestBody: { values: [row] },
-  });
+function isRetryableGoogleError(err) {
+  const msg = String(err?.message || "");
+  const code = String(err?.code || "");
+  return (
+    code === "ERR_STREAM_PREMATURE_CLOSE" ||
+    msg.includes("Premature close") ||
+    msg.includes("ETIMEDOUT") ||
+    msg.includes("ECONNRESET") ||
+    msg.includes("socket hang up")
+  );
 }
 
-async function valuesUpdate(rangeA1, row) {
-  await sheets.spreadsheets.values.update({
-    spreadsheetId: SPREADSHEET_ID,
-    range: rangeA1,
-    valueInputOption: "RAW",
-    requestBody: { values: [row] },
-  });
+async function valuesGet(range, attempt = 1) {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range,
+      valueRenderOption: "UNFORMATTED_VALUE",
+      dateTimeRenderOption: "FORMATTED_STRING",
+    });
+    return res.data.values || [];
+  } catch (err) {
+    console.error(`valuesGet failed [${range}] attempt ${attempt}:`, err?.message || err);
+    if (attempt < 4 && isRetryableGoogleError(err)) {
+      await sleep(500 * attempt);
+      return valuesGet(range, attempt + 1);
+    }
+    throw err;
+  }
 }
+
+async function valuesAppend(rangeA1, row, attempt = 1) {
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: rangeA1,
+      valueInputOption: "RAW",
+      insertDataOption: "INSERT_ROWS",
+      requestBody: { values: [row] },
+    });
+  } catch (err) {
+    console.error(`valuesAppend failed [${rangeA1}] attempt ${attempt}:`, err?.message || err);
+    if (attempt < 4 && isRetryableGoogleError(err)) {
+      await sleep(500 * attempt);
+      return valuesAppend(rangeA1, row, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+async function valuesUpdate(rangeA1, row, attempt = 1) {
+  try {
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: SPREADSHEET_ID,
+      range: rangeA1,
+      valueInputOption: "RAW",
+      requestBody: { values: [row] },
+    });
+  } catch (err) {
+    console.error(`valuesUpdate failed [${rangeA1}] attempt ${attempt}:`, err?.message || err);
+    if (attempt < 4 && isRetryableGoogleError(err)) {
+      await sleep(500 * attempt);
+      return valuesUpdate(rangeA1, row, attempt + 1);
+    }
+    throw err;
+  }
+}
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT EXCEPTION:", err);
+});
+
+bot.on("polling_error", (err) => {
+  console.error("Polling error:", err?.message || err);
+});
+
 
 // ===== Registrazioni =====
 async function getRegisteredNick(userId) {
@@ -553,23 +609,28 @@ bot.onText(/^\/about(?:@\w+)?$/i, async (msg) => {
 
 // ===== /compagni =====
 bot.onText(/^\/compagni(?:@\w+)?$/i, async (msg) => {
-  const isGroup = msg.chat.type !== "private";
-  if (isGroup) {
+  try {
+    const isGroup = msg.chat.type !== "private";
+    if (isGroup) {
     await bot.sendMessage(msg.chat.id, compagniText, {
     parse_mode: "HTML"
     });
     return;
   }
+  }
+  catch (err) {
+    console.error("Errore /registra:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+  
 });
 
 // ===== /registra nickname =====
 bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
-  if (msg.chat.type !== "private") {
-    await bot.sendMessage(msg.chat.id, startGruppoText, {
-      parse_mode: "HTML"
-    });
-    return;
-  }
+  try {
+    if (msg.chat.type !== "private") {
+      await bot.sendMessage(msg.chat.id, startGruppoText, { parse_mode: "HTML" });
+      return;
+    }
 
   const arg = (match && match[1]) ? String(match[1]).trim() : "";
   if (!arg) {
@@ -588,6 +649,10 @@ bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
 
   await upsertRegistration(msg.from.id, arg);
   await bot.sendMessage(msg.chat.id, registraOkText);
+    } catch (err) {
+    console.error("Errore /registra:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+  }
 });
 
 
