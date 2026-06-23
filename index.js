@@ -550,6 +550,7 @@ const infoNonRegistratoText =
 
 // ===== /start =====
 bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
+  try {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
     await bot.sendMessage(msg.chat.id, startGruppoText, {
@@ -561,10 +562,15 @@ bot.onText(/^\/start(?:@\w+)?$/i, async (msg) => {
   await bot.sendMessage(msg.chat.id, startPrivatoText(at), {
   parse_mode: "HTML"
 });
+    }
+  catch (err) {
+    console.error("Errore /help:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /help =====
 bot.onText(/^\/help(?:@\w+)?$/i, async (msg) => {
+  try {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
     await bot.sendMessage(msg.chat.id, helpText, {
@@ -572,10 +578,15 @@ bot.onText(/^\/help(?:@\w+)?$/i, async (msg) => {
     });
     return;
   }
+    }
+  catch (err) {
+    console.error("Errore /help:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /modifiche =====
 bot.onText(/^\/modifiche(?:@\w+)?$/i, async (msg) => {
+  try {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
     await bot.sendMessage(msg.chat.id, modificheText, {
@@ -583,10 +594,15 @@ bot.onText(/^\/modifiche(?:@\w+)?$/i, async (msg) => {
     });
     return;
   }
+  }
+  catch (err) {
+    console.error("Errore /modifiche:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /bonifici =====
 bot.onText(/^\/bonifici(?:@\w+)?$/i, async (msg) => {
+  try {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
     await bot.sendMessage(msg.chat.id, bonificiText, {
@@ -594,10 +610,15 @@ bot.onText(/^\/bonifici(?:@\w+)?$/i, async (msg) => {
     });
     return;
   }
+  }
+  catch (err) {
+    console.error("Errore /bonifici:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /about =====
 bot.onText(/^\/about(?:@\w+)?$/i, async (msg) => {
+  try {
   const isGroup = msg.chat.type !== "private";
   if (isGroup) {
     await bot.sendMessage(msg.chat.id, aboutText, {
@@ -605,6 +626,10 @@ bot.onText(/^\/about(?:@\w+)?$/i, async (msg) => {
     });
     return;
   }
+  }
+  catch (err) {
+    console.error("Errore /about:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
 });
 
 // ===== /compagni =====
@@ -619,7 +644,7 @@ bot.onText(/^\/compagni(?:@\w+)?$/i, async (msg) => {
   }
   }
   catch (err) {
-    console.error("Errore /registra:", err);
+    console.error("Errore /compagni:", err);
     await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
   
 });
@@ -658,6 +683,7 @@ bot.onText(/^\/registra(?:@\w+)?(?:\s+(.+))?$/i, async (msg, match) => {
 
 // ===== /info =====
 bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
+  try {
   if (msg.chat.type !== "private") {
     await bot.sendMessage(msg.chat.id, startGruppoText, {
       parse_mode: "HTML"
@@ -712,6 +738,10 @@ bot.onText(/^\/(info|informazioni)(?:@\w+)?$/i, async (msg) => {
   await bot.sendMessage(msg.chat.id, reply, {
     parse_mode: "HTML"
   });
+    } catch (err) {
+    console.error("Errore /info:", err);
+    await bot.sendMessage(msg.chat.id, "Si e' verificato un errore temporaneo. Riprova tra qualche secondo.");
+  }
 });
 
 // ===== helpers giorni =====
