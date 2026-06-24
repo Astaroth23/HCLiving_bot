@@ -24,25 +24,36 @@ import fs from "fs";
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const SA_JSON_RAW = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-
-if (!TELEGRAM_TOKEN || !SPREADSHEET_ID || !SA_JSON_RAW) {
-  console.error("Missing ENV. Need TELEGRAM_TOKEN, SPREADSHEET_ID, GOOGLE_SERVICE_ACCOUNT_JSON");
-  process.exit(1);
-}
-
 let SA;
 try {
   SA = JSON.parse(SA_JSON_RAW);
 } catch (e) {
-  console.error("GOOGLE_SERVICE_ACCOUNT_JSON is not valid JSON");
+  console.error("JSON NON VALIDO");
   process.exit(1);
 }
-
+console.log("SA email:", SA.client_email);
+console.log("SA project:", SA.project_id);
+console.log("SA key id:", SA.private_key_id);
+console.log("SA type:", SA.type);
 const auth = new google.auth.JWT({
   email: SA.client_email,
   key: SA.private_key,
   scopes: ["[googleapis.com](https://www.googleapis.com/auth/spreadsheets)"],
 });
+try {
+  const token = await auth.getAccessToken();
+  console.log("TOKEN OK:", !!token?.token);
+  console.log("TOKEN PREVIEW:", token?.token ? token.token.slice(0, 20) + "..." : "NO TOKEN");
+} catch (err) {
+  console.error("TOKEN FAIL FULL:", err);
+  console.error("TOKEN FAIL RESPONSE:", err?.response?.data);
+  process.exit(1);
+}
+
+if (!TELEGRAM_TOKEN || !SPREADSHEET_ID || !SA_JSON_RAW) {
+  console.error("Missing ENV. Need TELEGRAM_TOKEN, SPREADSHEET_ID, GOOGLE_SERVICE_ACCOUNT_JSON");
+  process.exit(1);
+}
 
 const sheets = google.sheets({ version: "v4", auth });
 
@@ -1250,16 +1261,3 @@ function reminderText_(days, mentions, app, camera) {
 }
 
 
-
-console.log("SA type:", SA.type);
-console.log("SA token_uri:", SA.token_uri);
-console.log("SA client_email:", SA.client_email);
-console.log("SA project_id:", SA.project_id);
-console.log(
-  "Private key starts correctly:",
-  SA.private_key?.startsWith("-----BEGIN PRIVATE KEY-----")
-);
-console.log(
-  "Private key ends correctly:",
-  SA.private_key?.trim().endsWith("-----END PRIVATE KEY-----")
-);
