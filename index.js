@@ -3,12 +3,6 @@ import { google } from "googleapis";
 import http from "http";
 import fs from "fs";
 
-google.options({
-  headers: {
-    "Accept-Encoding": "identity",
-  },
-});
-
 
 /**
  * ENV richieste:
@@ -54,15 +48,38 @@ const sheets = google.sheets({ version: "v4", auth });
 
 async function warmupGoogleAuth_() {
   try {
-    const token = await auth.authorize();
+    const tokenResponse = await auth.getAccessToken();
     console.log("Google auth OK");
-    console.log("Access token exists:", !!token?.access_token);
-    console.log("Expiry date:", token?.expiry_date);
-    return token;
+    console.log("Access token exists:", !!tokenResponse?.token);
+    console.log(
+      "Access token preview:",
+      tokenResponse?.token ? `${tokenResponse.token.slice(0, 20)}...` : "NO"
+    );
+    return tokenResponse;
   } catch (err) {
-    console.error("Google auth warmup failed:", err);
+    console.error("Google auth warmup failed:", err?.response?.data || err);
     throw err;
   }
+}
+
+async function testSheetsRead_() {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Registrazioni!A1:C3",
+    });
+    console.log("Sheets read test OK:", res.data.values);
+  } catch (err) {
+    console.error("Sheets read test FAILED:", err?.response?.data || err);
+    throw err;
+  }
+}
+
+try {
+  await warmupGoogleAuth_();
+  await testSheetsRead_();
+} catch (err) {
+  console.error("Startup auth/read failed:", err);
 }
 
 
@@ -1231,6 +1248,10 @@ function reminderText_(days, mentions, app, camera) {
   return `${who} la scadenza della camera ${camera} in ${app.toUpperCase()} ${whenTxt}, volete rinnovare?`;
 }
 
+
+
+console.log("SA type:", SA.type);
+console.log("SA token_uri:", SA.token_uri);
 console.log("SA client_email:", SA.client_email);
 console.log("SA project_id:", SA.project_id);
 console.log(
@@ -1241,4 +1262,3 @@ console.log(
   "Private key ends correctly:",
   SA.private_key?.trim().endsWith("-----END PRIVATE KEY-----")
 );
-
