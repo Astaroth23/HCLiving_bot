@@ -48,32 +48,30 @@ const sheets = google.sheets({ version: "v4", auth });
 
 async function warmupGoogleAuth_() {
   try {
-    const tokenResponse = await auth.getAccessToken();
-    console.log("Google auth OK");
-    console.log("Access token exists:", !!tokenResponse?.token);
-    console.log(
-      "Access token preview:",
-      tokenResponse?.token ? `${tokenResponse.token.slice(0, 20)}...` : "NO"
-    );
-    return tokenResponse;
+    const token = await auth.getAccessToken();
+    console.log("Google auth token exists:", !!token?.token);
+    console.log("Google auth token preview:", token?.token ? `${token.token.slice(0, 20)}...` : "NO TOKEN");
+    return token;
   } catch (err) {
     console.error("Google auth warmup failed:", err?.response?.data || err);
     throw err;
   }
 }
 
+
 async function testSheetsRead_() {
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
-      range: "Registrazioni!A1:C3",
+      range: "Registrazioni!A1:C2",
     });
-    console.log("Sheets read test OK:", res.data.values);
+    console.log("Sheets read OK:", res.data.values || []);
   } catch (err) {
-    console.error("Sheets read test FAILED:", err?.response?.data || err);
+    console.error("Sheets read FAILED:", err?.response?.data || err);
     throw err;
   }
 }
+
 
 try {
   await warmupGoogleAuth_();
