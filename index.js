@@ -70,9 +70,6 @@ try {
   process.exit(1);
 }
 
-
-const sheets = google.sheets({ version: "v4", auth });
-
 async function warmupGoogleAuth_() {
   try {
     const token = await auth.getAccessToken();
