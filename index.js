@@ -70,44 +70,6 @@ try {
   process.exit(1);
 }
 
-async function warmupGoogleAuth_() {
-  try {
-    const token = await auth.getAccessToken();
-    console.log("Google auth token exists:", !!token?.token);
-    console.log(
-      "Google auth token preview:",
-      token?.token ? `${token.token.slice(0, 20)}...` : "NO TOKEN"
-    );
-    return token;
-  } catch (err) {
-    console.error("Google auth warmup failed:", err?.response?.data || err);
-    throw err;
-  }
-}
-
-async function testSheetsRead_() {
-  try {
-    const res = await sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEET_ID,
-      range: "Registrazioni!A1:C2",
-    });
-    console.log("Sheets read OK:", res.data.values || []);
-  } catch (err) {
-    console.error("Sheets read FAILED:", err?.response?.data || err);
-    throw err;
-  }
-}
-
-try {
-  await warmupGoogleAuth_();
-  await testSheetsRead_();
-  console.log("Google bootstrap OK");
-} catch (err) {
-  console.error("Startup auth/read failed:", err);
-  process.exit(1);
-}
-
-
 
 const LOCK_FILE = "/tmp/bot.lock";
 
