@@ -3,27 +3,15 @@ import { google } from "googleapis";
 import http from "http";
 import fs from "fs";
 
-
-/**
- * ENV richieste:
- * TELEGRAM_TOKEN
- * SPREADSHEET_ID
- * GOOGLE_SERVICE_ACCOUNT_JSON  (il JSON completo del service account)
- *
- * Named ranges richiesti nel foglio:
- * tab_camere_app5p12
- * tab_camere_app7p1
- * tab_camere_app10p1
- * tab_camere_app13p1
- * tab_camere_app5p17
- * tab_camere_app7p6
- * Foglio richiesto:
- * Registrazioni (UserID, TuoNick, DataRegistrazione)
- */
-
 const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 const SA_JSON_RAW = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+
+if (!TELEGRAM_TOKEN || !SPREADSHEET_ID || !SA_JSON_RAW) {
+  console.error("Missing ENV. Need TELEGRAM_TOKEN, SPREADSHEET_ID, GOOGLE_SERVICE_ACCOUNT_JSON");
+  process.exit(1);
+}
+
 let SA;
 try {
   SA = JSON.parse(SA_JSON_RAW);
@@ -31,29 +19,57 @@ try {
   console.error("JSON NON VALIDO");
   process.exit(1);
 }
+
 console.log("SA email:", SA.client_email);
 console.log("SA project:", SA.project_id);
 console.log("SA key id:", SA.private_key_id);
 console.log("SA type:", SA.type);
+
 const auth = new google.auth.JWT({
   email: SA.client_email,
   key: SA.private_key,
   scopes: ["[googleapis.com](https://www.googleapis.com/auth/spreadsheets)"],
 });
+
+const sheets = google.sheets({ version: "v4", auth });
+
+async function warmupGoogleAuth_() {
+  try {
+    const token = await auth.getAccessToken();
+    console.log("Google auth token exists:", !!token?.token);
+    console.log(
+      "Google auth token preview:",
+      token?.token ? `${token.token.slice(0, 20)}...` : "NO TOKEN"
+    );
+    return token;
+  } catch (err) {
+    console.error("Google auth warmup failed:", err?.response?.data || err);
+    throw err;
+  }
+}
+
+async function testSheetsRead_() {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "Registrazioni!A1:C2",
+    });
+    console.log("Sheets read OK:", res.data.values || []);
+  } catch (err) {
+    console.error("Sheets read FAILED:", err?.response?.data || err);
+    throw err;
+  }
+}
+
 try {
-  const token = await auth.getAccessToken();
-  console.log("TOKEN OK:", !!token?.token);
-  console.log("TOKEN PREVIEW:", token?.token ? token.token.slice(0, 20) + "..." : "NO TOKEN");
+  await warmupGoogleAuth_();
+  await testSheetsRead_();
+  console.log("Google bootstrap OK");
 } catch (err) {
-  console.error("TOKEN FAIL FULL:", err);
-  console.error("TOKEN FAIL RESPONSE:", err?.response?.data);
+  console.error("Startup auth/read failed:", err);
   process.exit(1);
 }
 
-if (!TELEGRAM_TOKEN || !SPREADSHEET_ID || !SA_JSON_RAW) {
-  console.error("Missing ENV. Need TELEGRAM_TOKEN, SPREADSHEET_ID, GOOGLE_SERVICE_ACCOUNT_JSON");
-  process.exit(1);
-}
 
 const sheets = google.sheets({ version: "v4", auth });
 
@@ -108,11 +124,6 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-try {
-  await warmupGoogleAuth_();
-} catch (err) {
-  console.error("Startup auth failed:", err);
-}
 
 try {
   const me = await bot.getMe();
