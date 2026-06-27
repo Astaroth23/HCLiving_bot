@@ -1,3 +1,4 @@
+console.log(new Date().toISOString()) 
 import TelegramBot from "node-telegram-bot-api";
 import { google } from "googleapis";
 import http from "http";
@@ -20,15 +21,24 @@ try {
   process.exit(1);
 }
 
+const pk = process.env.GOOGLE_PRIVATE_KEY; // o come si chiama la tua env
+console.log('=== PRIVATE KEY DIAGNOSTIC ===');
+console.log('Numero di righe (split):', pk.split('\n').length);
+console.log('Contiene \\n letterale?', pk.includes('\\n'));
+console.log('Lunghezza totale:', pk.length);
+console.log('Prime 60 chars:', JSON.stringify(pk.substring(0, 60)));
+
 console.log("SA email:", SA.client_email);
 console.log("SA project:", SA.project_id);
 console.log("SA key id:", SA.private_key_id);
 console.log("SA type:", SA.type);
 
-const auth = new google.auth.JWT({
-  email: SA.client_email,
-  key: SA.private_key,
-  scopes: ["[googleapis.com](https://www.googleapis.com/auth/spreadsheets)"],
+import { JWT } from 'google-auth-library';
+
+const auth = new JWT({
+  email: process.env.GOOGLE_CLIENT_EMAIL,
+  key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // 👈 QUESTA È LA MAGICA
+  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
 const sheets = google.sheets({ version: "v4", auth });
