@@ -255,7 +255,16 @@ function isRetryableGoogleError(err) {
   );
 }
 
+let lastApiCall = 0;
+
 async function valuesGet(range, attempt = 1) {
+  // Rate limiting: aspetta almeno 1 secondo tra chiamate
+  const now = Date.now();
+  const timeSinceLastCall = now - lastApiCall;
+  if (timeSinceLastCall < 1000) {
+    await sleep(1000 - timeSinceLastCall);
+  }
+  
   try {
     const res = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
@@ -263,9 +272,18 @@ async function valuesGet(range, attempt = 1) {
       valueRenderOption: "UNFORMATTED_VALUE",
       dateTimeRenderOption: "FORMATTED_STRING",
     });
+    lastApiCall = Date.now();
     return res.data.values || [];
   } catch (err) {
     console.error(`valuesGet failed [${range}] attempt ${attempt}:`, err?.message || err);
+    
+    // Se è quota exceeded, aspetta di più
+    if (err?.message?.includes('Quota exceeded') && attempt < 4) {
+      console.log(`Quota exceeded, waiting 60 seconds before retry...`);
+      await sleep(60000);
+      return valuesGet(range, attempt + 1);
+    }
+    
     if (attempt < 4 && isRetryableGoogleError(err)) {
       await sleep(500 * attempt);
       return valuesGet(range, attempt + 1);
