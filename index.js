@@ -21,7 +21,7 @@ try {
   process.exit(1);
 }
 
-const pk = process.env.GOOGLE_PRIVATE_KEY; // o come si chiama la tua env
+const pk = SA.private_key; // ← usa il JSON che hai già parsato
 console.log('=== PRIVATE KEY DIAGNOSTIC ===');
 console.log('Numero di righe (split):', pk.split('\n').length);
 console.log('Contiene \\n letterale?', pk.includes('\\n'));
@@ -36,8 +36,8 @@ console.log("SA type:", SA.type);
 import { JWT } from 'google-auth-library';
 
 const auth = new JWT({
-  email: process.env.GOOGLE_CLIENT_EMAIL,
-  key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), // 👈 QUESTA È LA MAGICA
+  email: SA.client_email,
+  key: SA.private_key.replace(/\\n/g, '\n'), // ← il replace sulla chiave del JSON
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
 
@@ -92,6 +92,14 @@ try {
 }
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
+
+// 🔧 FIX 409 Conflict: forza la chiusura di qualsiasi altro polling attivo
+try {
+  await bot.deleteWebhook({ drop_pending_updates: true });
+  console.log("Webhook deleted, polling monopolizzato.");
+} catch (e) {
+  console.log("deleteWebhook warning:", e?.message || e);
+}
 
 
 try {
