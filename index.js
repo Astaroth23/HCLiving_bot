@@ -93,21 +93,26 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// 🔧 FIX CRITICO: forza la chiusura di qualsiasi altro polling attivo
+// 🔧 FIX CRITICO: chiamata HTTP diretta a Telegram API
 (async () => {
   try {
-    // Chiudi qualsiasi webhook attivo
-    await bot.deleteWebhook({ drop_pending_updates: true });
-    console.log("✅ Webhook deleted");
+    // Cancella webhook via HTTP diretto (funziona con qualsiasi versione della libreria)
+    const deleteWebhookUrl = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true`;
+    const response = await fetch(deleteWebhookUrl);
+    const result = await response.json();
     
-    // Aspetta 2 secondi per essere sicuri che Telegram processe la richiesta
-    await sleep(2000);
-    
-    // Ferma e riavvia il polling per monopolizzarlo
-    bot.stopPolling();
-    await sleep(1000);
-    bot.startPolling();
-    console.log("✅ Polling monopolizzato - solo questa istanza è attiva");
+    if (result.ok) {
+      console.log("✅ Webhook deleted via HTTP");
+      await sleep(2000);
+      
+      // Reset polling
+      bot.stopPolling();
+      await sleep(1000);
+      bot.startPolling();
+      console.log("✅ Polling monopolizzato - solo questa istanza è attiva");
+    } else {
+      console.error("❌ deleteWebhook failed:", result);
+    }
   } catch (e) {
     console.error("❌ Errore durante monopolio polling:", e?.message || e);
   }
@@ -978,11 +983,16 @@ setInterval(async () => {
       const sentKey = `daily_${c.app}`;
       const last = await getState_(sentKey);
       if (last === todayKey) continue; // già inviato oggi per questo appartamento
-
+      
+      // 🔒 Lock atomico: marca come "in corso" PRIMA di costruire il messaggio
+      await setState_(sentKey, `${todayKey}_processing`);
+      
       const msgText = await buildDailySummaryForApp_(c.app);
       if (msgText) {
         await bot.sendMessage(groupId, msgText);
-        await setState_(sentKey, todayKey);
+        await setState_(sentKey, todayKey); // marca come completato
+      } else {
+        await setState_(sentKey, `${todayKey}_empty`); // nessuna camera occupata
       }
     }
   } catch (e) {
