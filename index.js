@@ -93,13 +93,25 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// 🔧 FIX 409 Conflict: forza la chiusura di qualsiasi altro polling attivo
-try {
-  await bot.deleteWebhook({ drop_pending_updates: true });
-  console.log("Webhook deleted, polling monopolizzato.");
-} catch (e) {
-  console.log("deleteWebhook warning:", e?.message || e);
-}
+// 🔧 FIX CRITICO: forza la chiusura di qualsiasi altro polling attivo
+(async () => {
+  try {
+    // Chiudi qualsiasi webhook attivo
+    await bot.deleteWebhook({ drop_pending_updates: true });
+    console.log("✅ Webhook deleted");
+    
+    // Aspetta 2 secondi per essere sicuri che Telegram processe la richiesta
+    await sleep(2000);
+    
+    // Ferma e riavvia il polling per monopolizzarlo
+    bot.stopPolling();
+    await sleep(1000);
+    bot.startPolling();
+    console.log("✅ Polling monopolizzato - solo questa istanza è attiva");
+  } catch (e) {
+    console.error("❌ Errore durante monopolio polling:", e?.message || e);
+  }
+})();
 
 
 try {
