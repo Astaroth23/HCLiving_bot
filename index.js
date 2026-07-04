@@ -93,26 +93,27 @@ try {
 
 const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
 
-// 🔧 FIX CRITICO: chiamata HTTP diretta a Telegram API
+// 🔧 FIX CRITICO: monopolio polling + anti-duplicate
 (async () => {
   try {
-    // Cancella webhook via HTTP diretto (funziona con qualsiasi versione della libreria)
+    // 1. Chiudi webhook
     const deleteWebhookUrl = `https://api.telegram.org/bot${TELEGRAM_TOKEN}/deleteWebhook?drop_pending_updates=true`;
     const response = await fetch(deleteWebhookUrl);
     const result = await response.json();
     
     if (result.ok) {
       console.log("✅ Webhook deleted via HTTP");
-      await sleep(2000);
-      
-      // Reset polling
-      bot.stopPolling();
-      await sleep(1000);
-      bot.startPolling();
-      console.log("✅ Polling monopolizzato - solo questa istanza è attiva");
-    } else {
-      console.error("❌ deleteWebhook failed:", result);
     }
+    
+    // 2. Aspetta 3 secondi per essere sicuri che Telegram processe
+    await sleep(3000);
+    
+    // 3. Ferma e riavvia polling
+    bot.stopPolling();
+    await sleep(2000);
+    bot.startPolling();
+    console.log("✅ Polling monopolizzato - istanza attiva:", process.pid);
+    
   } catch (e) {
     console.error("❌ Errore durante monopolio polling:", e?.message || e);
   }
@@ -980,13 +981,18 @@ setInterval(async () => {
       const groupId = GROUP_CHAT_MAP[c.app];
       if (!groupId) continue; // se non impostato, skip
 
-      const sentKey = `daily_${c.app}`;
-      const last = await getState_(sentKey);
-      if (last === todayKey) continue; // già inviato oggi per questo appartamento
-      
-      // 🔒 Lock atomico: marca come "in corso" PRIMA di costruire il messaggio
-      await setState_(sentKey, `${todayKey}_processing`);
-      
+    const sentKey = `daily_${c.app}`;
+    const last = await getState_(sentKey);
+    
+    // 🔒 Lock atomico: se è già "processing" o completato oggi, skip
+    if (last === todayKey || last === `${todayKey}_processing` || last === `${todayKey}_empty`) {
+      continue;
+    }
+    
+    // Marca come "in corso" PRIMA di costruire il messaggio
+    await setState_(sentKey, `${todayKey}_processing`);
+    
+    try {
       const msgText = await buildDailySummaryForApp_(c.app);
       if (msgText) {
         await bot.sendMessage(groupId, msgText);
@@ -994,42 +1000,74 @@ setInterval(async () => {
       } else {
         await setState_(sentKey, `${todayKey}_empty`); // nessuna camera occupata
       }
+    } catch (err) {
+  console.error(`Daily summary failed for ${c.app}:`, err?.message || err);
+  // Resetta lo stato per permettere retry
+  await setState_(sentKey, "");
+}
     }
   } catch (e) {
     console.log("daily summary error:", e?.message || e);
   }
 }, 60 * 1000);
 
-// ===== costruisce riepilogo SOLO per 1 appartamento =====
 async function buildDailySummaryForApp_(app) {
   const conf = CAMERA_RANGES.find(x => x.app === app);
   if (!conf) return null;
 
-  const rows = await valuesGet(conf.range);
-  if (rows.length < 2) return null;
+  // 🔧 OTTIMIZZAZIONE: leggi tutti i dati UNA VOLTA SOLA
+  const [camRows, compRows] = await Promise.all([
+    valuesGet(conf.range),
+    COMP_RANGES.find(x => x.app === app) ? valuesGet(COMP_RANGES.find(x => x.app === app).range) : Promise.resolve([])
+  ]);
 
-  const idxs = headerIndexMap(rows[0]);
+  if (camRows.length < 2) return null;
+
+  const idxs = headerIndexMap(camRows[0]);
   if (idxs.camera < 0 || idxs.stato < 0 || idxs.cf < 0) return null;
+
+  // Prepara mappa compagni per camera
+  const compMap = new Map();
+  if (compRows.length >= 2) {
+    const compHeader = compRows[0].map(x => String(x ?? "").trim().toLowerCase());
+    const idxCamC = compHeader.indexOf("camera");
+    const idxCfC = compHeader.indexOf("cod.fiscale");
+    const idxTelC = compHeader.indexOf("telegram");
+
+    if (idxCamC >= 0 && idxCfC >= 0) {
+      for (let i = 1; i < compRows.length; i++) {
+        const r = compRows[i];
+        if (!r || r.length === 0) continue;
+        const cam = String(r[idxCamC] ?? "").trim();
+        const nick = String(r[idxCfC] ?? "").trim();
+        const tel = idxTelC >= 0 ? String(r[idxTelC] ?? "").trim() : "";
+        
+        if (!compMap.has(cam)) compMap.set(cam, { nicks: [], tels: [] });
+        if (nick) compMap.get(cam).nicks.push(nick);
+        if (tel) compMap.get(cam).tels.push(tel);
+      }
+    }
+  }
 
   const items = [];
 
-  for (let i = 1; i < rows.length; i++) {
-    const r = rows[i];
+  for (let i = 1; i < camRows.length; i++) {
+    const r = camRows[i];
     if (!r || r.length === 0) continue;
     if (!isOccupata(r[idxs.stato])) continue;
 
     const ownerNick = String(r[idxs.cf] ?? "").trim();
     const camera = String(r[idxs.camera] ?? "").trim();
-
     const compCount = idxs.comp >= 0 ? Number(r[idxs.comp]) || 0 : 0;
     const scadStr = idxs.scad >= 0 ? String(r[idxs.scad] ?? "").trim() : "";
-    const telegrams = await getTelegramByAppCamera_(app, camera);
-    const compNicks = await getCompagniNickByAppCamera_(app, camera);
-    const displayName = compNicks.length ? `${ownerNick} & ${compNicks.join(" & ")}` : ownerNick;
-
+    
+    // Usa la mappa invece di fare chiamate aggiuntive
+    const compData = compMap.get(camera) || { nicks: [], tels: [] };
+    const ownerTel = idxs.telegram >= 0 ? String(r[idxs.telegram] ?? "").trim() : "";
+    
+    const displayName = compData.nicks.length ? `${ownerNick} & ${compData.nicks.join(" & ")}` : ownerNick;
     const bonus = bonusCompagni(app, compCount);
     const importo = conf.base + bonus;
-
     const days = giorniDaOggi_(scadStr);
 
     let daysTxt = "";
@@ -1040,14 +1078,14 @@ async function buildDailySummaryForApp_(app) {
       alertLine = `❗ SCADUTO`;
     } else if (days === 0) {
       daysTxt = `(oggi)`;
-      const mentions = [telegrams.owner, ...telegrams.compagni]
+      const mentions = [ownerTel, ...compData.tels]
         .filter(Boolean)
         .map(toMention_)
         .join(" ");
       alertLine = `🚨 IN SCADENZA ${mentions}`;
     } else if (days <= 2) {
       daysTxt = `(-${days} giorni)`;
-      const mentions = [telegrams.owner, ...telegrams.compagni]
+      const mentions = [ownerTel, ...compData.tels]
         .filter(Boolean)
         .map(toMention_)
         .join(" ");
@@ -1080,12 +1118,12 @@ async function buildDailySummaryForApp_(app) {
   let out = `📋 GESTIONE AFFITTI ${app.toUpperCase()}\n\n`;
 
   for (const it of items) {
-  out += `👤 ${it.displayName}\n`;
-  if (it.alertLine) {
-    out += `${it.alertLine}\n`;
-  }
-  out += `- Scadenza: ${it.scadenzaFmt} ${it.daysTxt}\n`;
-  out += `- Importo: ${it.importo}€\n\n`;
+    out += `👤 ${it.displayName}\n`;
+    if (it.alertLine) {
+      out += `${it.alertLine}\n`;
+    }
+    out += `- Scadenza: ${it.scadenzaFmt} ${it.daysTxt}\n`;
+    out += `- Importo: ${it.importo}€\n\n`;
   }
 
   out += `Aggiornato ${upd}`;
