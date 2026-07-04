@@ -119,13 +119,24 @@ const bot = new TelegramBot(TELEGRAM_TOKEN, { polling: true });
   }
 })();
 
-
-try {
-  const me = await bot.getMe();
-  bot.botInfo = me;
-} catch (err) {
-  console.error("Errore bot.getMe():", err);
-}
+  // 🔍 Verifica anti-duplicate
+  const instanceId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+  console.log(`🆔 Instance ID: ${instanceId}`);
+  
+  // Controlla se ci sono altri polling attivi
+  bot.on('polling_error', (err) => {
+    if (err.message.includes('409 Conflict')) {
+      console.error(`❌ DUPLICATE INSTANCE DETECTED! Instance ${instanceId} sta perdendo il polling.`);
+      console.error(`❌ Un'altra istanza del bot è attiva. Ferma il servizio e riavvialo.`);
+    }
+  });
+  
+  try {
+    const me = await bot.getMe();
+    bot.botInfo = me;
+  } catch (err) {
+    console.error("Errore bot.getMe():", err);
+  }
 
 
 
