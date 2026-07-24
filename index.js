@@ -189,6 +189,10 @@ const COMP_RANGES = [
   { app: "app13p1", range: "tab_compagni_app13p1" },
   { app: "app7p6", range: "tab_compagni_app7p6" },
   { app: "app5p17", range: "tab_compagni_app5p17" },
+  { app: "app1p16", range: "tab_compagni_app1p16" },
+  { app: "app21p3", range: "tab_compagni_app21p3" },
+  { app: "app10p17", range: "tab_compagni_app10p17" },
+  { app: "app8p15", range: "tab_compagni_app8p15" },
 ];
 
 function normalizeNick_(s) {
