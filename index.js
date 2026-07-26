@@ -180,6 +180,7 @@ const CAMERA_RANGES = [
   { app: "app21p3", range: "tab_camere_app21p3", base: 600 },
   { app: "app10p17", range: "tab_camere_app10p17", base: 2500 },
   { app: "app8p15", range: "tab_camere_app8p15", base: 800 },
+  { app: "v2casa5", range: "tab_camere_v2casa5", base: 2500 },
 ];
 
 const COMP_RANGES = [
@@ -193,6 +194,7 @@ const COMP_RANGES = [
   { app: "app21p3", range: "tab_compagni_app21p3" },
   { app: "app10p17", range: "tab_compagni_app10p17" },
   { app: "app8p15", range: "tab_compagni_app8p15" },
+  { app: "v2casa5", range: "tab_compagni_v2casa5" },
 ];
 
 function normalizeNick_(s) {
@@ -972,6 +974,7 @@ const GROUP_CHAT_MAP = {
   app21p3: process.env.GROUP_APP21P3_CHAT_ID,
   app10p17: process.env.GROUP_APP10P17_CHAT_ID,
   app8p15: process.env.GROUP_APP8P15_CHAT_ID,
+  v2casa5: process.env.GROUP_V2SIGN5_CHAT_ID,
 };
 
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
