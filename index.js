@@ -974,7 +974,7 @@ const GROUP_CHAT_MAP = {
   app21p3: process.env.GROUP_APP21P3_CHAT_ID,
   app10p17: process.env.GROUP_APP10P17_CHAT_ID,
   app8p15: process.env.GROUP_APP8P15_CHAT_ID,
-  v2casa5: process.env.GROUP_V2SIGN5_CHAT_ID,
+  v2casa5: process.env.GROUP_V2CASA5_CHAT_ID,
 };
 
 const DAILY_SUMMARY_HOUR = Number(process.env.DAILY_SUMMARY_HOUR ?? 9);
